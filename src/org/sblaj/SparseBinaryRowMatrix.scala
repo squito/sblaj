@@ -5,7 +5,9 @@ package org.sblaj
  */
 
 class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: Int, columnIds: Array[Int], rowStartIdxs: Array[Int])
-  extends SparseMatrix {
+  extends SparseMatrix
+  with Traversable[SparseBinaryVector]  //maybe this should be part of SparseMatrix?
+  {
 
   val maxRows: Int = nMaxRows
   val maxNnz: Int = nMaxNonZeros
@@ -34,10 +36,19 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     setSize(maxRows, maxNnz)
   }
 
-
   def setSize(nRows: Int, nnz: Int) {
     this.nRows = nRows
     this.nnz = nnz
+  }
+
+  def foreach[U](f: SparseBinaryVector => U) : Unit = {
+    var rowIdx = 0
+    val v = new BaseSparseBinaryVector(colIds, 0,0)
+    while (rowIdx < nRows) {
+      v.reset(colIds, rowStartIdx(rowIdx), rowStartIdx(rowIdx + 1))
+      f(v)
+      rowIdx += 1
+    }
   }
 
   def get(x: Int, y: Int) : Float = {
