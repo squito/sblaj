@@ -2,6 +2,7 @@ package org.sblaj
 
 /**
  *
+ * foreach doesn't pass new object to each function
  */
 
 class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: Int, columnIds: Array[Int], rowStartIdxs: Array[Int])
@@ -41,6 +42,12 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     this.nnz = nnz
   }
 
+  /**
+   * note that this doesn't necessarily pass a different object to each function call -- it may reuse the same
+   * object multiple times
+   * @param f
+   * @tparam U
+   */
   def foreach[U](f: SparseBinaryVector => U) : Unit = {
     var rowIdx = 0
     val v = new BaseSparseBinaryVector(colIds, 0,0)
