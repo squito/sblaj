@@ -27,10 +27,10 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
     result.toDouble should be ( (0.1 + 0.6 + 0.9) plusOrMinus 0.00001)
   }
 
-  "preMult" should "compute correct answer" in {
+  "mult" should "compute correct answer" in {
     val f = fixture()
     val result = new Array[Float](3)
-    f.v.preMult(f.theta, result)
+    f.v.mult(f.theta, result)
     for (j <- 0 until 3) {
       val v = result(j).toDouble
       v should be ( (5.0 + 8) + (3 * j) plusOrMinus 0.000001)
@@ -39,7 +39,7 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
     //should add to whatever is already there
     val initial = Array[Float](1.0f, -5.0f, 0.25f)
     Array.copy(initial, 0, result, 0, 3)
-    f.v.preMult(f.theta, result)
+    f.v.mult(f.theta, result)
     for (j <- 0 until 3) {
       val v = result(j).toDouble
       v should be ( (5.0 + 8) + (3 * j) + initial(j) plusOrMinus 0.000001)

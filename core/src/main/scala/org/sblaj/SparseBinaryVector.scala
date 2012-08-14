@@ -27,12 +27,12 @@ trait SparseBinaryVector {
    * compute (this)x(theta), and *add* the result to <code>into<code>
    * <p>
    * eg., take this as a row vector, and multiply it by the dense matrix
-   * theta, and store the result in the given array
+   * theta, and add the result to what is in the given array
    *
    * @param theta a dense matrix
-   * @param into store the result in this array
+   * @param into add the result into this array
    */
-  def preMult(theta:Array[Array[Float]], into: Array[Float]) : Unit
+  def mult(theta:Array[Array[Float]], into: Array[Float]) : Unit
 }
 
 
@@ -69,7 +69,7 @@ extends SparseBinaryVector {
     f
   }
 
-  def preMult(theta: Array[Array[Float]], into: Array[Float]) : Unit = {
+  def mult(theta: Array[Array[Float]], into: Array[Float]) : Unit = {
     var idx = theStartIdx
     while (idx < theEndIdx) {
       val colId = theColIds(idx)
