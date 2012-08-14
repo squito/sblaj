@@ -35,5 +35,15 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
       val v = result(j).toDouble
       v should be ( (5.0 + 8) + (3 * j) plusOrMinus 0.000001)
     }
+
+    //should add to whatever is already there
+    val initial = Array[Float](1.0f, -5.0f, 0.25f)
+    Array.copy(initial, 0, result, 0, 3)
+    f.v.preMult(f.theta, result)
+    for (j <- 0 until 3) {
+      val v = result(j).toDouble
+      v should be ( (5.0 + 8) + (3 * j) + initial(j) plusOrMinus 0.000001)
+    }
+
   }
 }
