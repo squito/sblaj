@@ -33,6 +33,13 @@ trait SparseBinaryVector {
    * @param into add the result into this array
    */
   def mult(theta:Array[Array[Float]], into: Array[Float]) : Unit
+
+  /**
+   * into(i)(j) += this(i) * vals(j)
+   * @param vals
+   * @param into
+   */
+  def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) : Unit
 }
 
 
@@ -80,6 +87,19 @@ extends SparseBinaryVector {
         j += 1
       }
       idx += 1
+    }
+  }
+
+  def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) {
+    var rowIdx = theStartIdx
+    while (rowIdx < theEndIdx) {
+      val row = theColIds(rowIdx)
+      var col = 0
+      while (col < vals.length) {
+        into(row)(col) += vals(col)
+        col += 1
+      }
+      rowIdx += 1
     }
   }
 
