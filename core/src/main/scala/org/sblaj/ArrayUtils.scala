@@ -50,4 +50,31 @@ object ArrayUtils {
     (max + math.log(sum).asInstanceOf[Float])
   }
 
+
+  def createSquareArray(nRows: Int, nCols: Int) : Array[Array[Float]] = {
+    val result: Array[Array[Float]] = new Array[Array[Float]](nRows)
+    var idx = 0
+    while (idx < result.length) {
+      result(idx) = new Array[Float](nCols)
+      idx += 1
+    }
+    result
+  }
+
+  def zeroSquareArray(arr: Array[Array[Float]]) {
+    var idx = 0
+    while (idx < arr.length) {
+      java.util.Arrays.fill(arr(idx), 0f)
+      idx += 1
+    }
+  }
+
+  def +=(into: Array[Float], add: Array[Float]) {
+    var idx = 0
+    while (idx < into.length) {
+      into(idx) += add(idx)
+      idx += 1
+    }
+  }
+
 }
