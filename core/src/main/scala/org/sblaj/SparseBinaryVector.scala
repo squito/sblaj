@@ -110,4 +110,19 @@ extends SparseBinaryVector {
     else
       return 1
   }
+
+  override def toString() = {
+    val sb = new StringBuilder()
+    sb.append("[")
+    var idx = theStartIdx
+    while (idx < theEndIdx - 1) {
+      sb.append(colIds(idx))
+      sb.append(",")
+      idx += 1
+    }
+    if (idx < theEndIdx)
+      sb.append(colIds(idx))
+    sb.append("]")
+    sb.toString()
+  }
 }
