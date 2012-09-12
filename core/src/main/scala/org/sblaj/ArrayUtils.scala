@@ -6,7 +6,7 @@ package org.sblaj
 
 object ArrayUtils {
 
-  def matrixString(theta: Array[Array[Float]]) : String = {
+  def matrixString[T](theta: Array[Array[T]]) : String = {
     theta.map { _.mkString("[", ",", "]")}.mkString("\n")
   }
 
@@ -69,12 +69,33 @@ object ArrayUtils {
     }
   }
 
-  def +=(into: Array[Float], add: Array[Float]) {
+  def +=(add: Array[Float], into: Array[Float]) {
     var idx = 0
     while (idx < into.length) {
       into(idx) += add(idx)
       idx += 1
     }
   }
+
+  def +=(add: Array[Float], mult: Float, into: Array[Float]) {
+    var idx = 0
+    while (idx < into.length) {
+      into(idx) += add(idx) * mult
+      idx += 1
+    }
+  }
+
+  def cumSum(arr: Array[Float]) = {
+    val cs = new Array[Float](arr.length)
+    var idx = 0
+    var sum = 0f
+    while (idx < arr.length) {
+      sum += arr(idx)
+      cs(idx) = sum
+      idx += 1
+    }
+    cs
+  }
+
 
 }

@@ -2,6 +2,7 @@ package org.sblaj
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.{MatchResult, ShouldMatchers, Matcher}
+import ArrayUtils._
 
 class ArrayUtilsTest extends FunSuite with ShouldMatchers {
 
@@ -30,7 +31,7 @@ class ArrayUtilsTest extends FunSuite with ShouldMatchers {
         oneHardTest = true
 
       //check normalized, and check we get the right normalization constant
-      val normalizingFactor = ArrayUtils.stableLogNormalize(logProbs, 0, logProbs.length)
+      val normalizingFactor = stableLogNormalize(logProbs, 0, logProbs.length)
 
       var idx = 0
       while (idx < scaledNorm.length) {
@@ -39,5 +40,22 @@ class ArrayUtilsTest extends FunSuite with ShouldMatchers {
       }
     }
     oneHardTest should be (true)
+  }
+
+  test("+=") {
+    val eps = 0.00001f
+
+    val into = Array[Float](0.1f, 0.2f, 0.3f)
+    val add = Array[Float](0.5f, 0.3f, 0.1f)
+    +=(add, into)
+    into(0) should be (0.6f plusOrMinus eps)
+    into(1) should be (0.5f plusOrMinus eps)
+    into(2) should be (0.4f plusOrMinus eps)
+
+
+    +=(add, 3, into)
+    into(0) should be (2.1f plusOrMinus eps)
+    into(1) should be (1.4f plusOrMinus eps)
+    into(2) should be (0.7f plusOrMinus eps)
   }
 }
