@@ -68,17 +68,35 @@ class MultinomialNaiveBayesTest extends FunSuite with ShouldMatchers {
 
   test("real EM") {
     val classPriors = Array(0.6f, 0.2f, 0.2f)
-    val dataSet = generatePowerLawTestData(3, classPriors, 10000, 10, 0.9f, 0.1f, 10, 0.1f, 1e-5f)
-    val nb = new MultinomialNaiveBayes(20, 3, classPriors)
-    println(dataSet.data.nRows + "," + dataSet.data.nCols + "," + dataSet.data.nnz)
-    nb.randomInit(dataSet.data)
-    println(ArrayUtils.matrixString(nb.numCounts))
-    println("denom counts = " + nb.denomCounts.mkString(","))
-    println(ArrayUtils.matrixString(nb.logTheta))
-    println()
+    val nNoise = 5000
+    val nGiveaway = 20
+    val nb = new MultinomialNaiveBayes(nNoise + nGiveaway, 3)
+    var goodFit = false
+    var itr = 0
+    while (!goodFit && itr < 100) {
+      val dataSet = generatePowerLawTestData(3, classPriors, 100000, nGiveaway, 0.9f, 0.1f, nNoise, 0.1f, 1e-5f)
+      val logSoftLabels = dataSet.makeLogSoftLabels(0.7f)
+      println(dataSet.data.nRows + "," + dataSet.data.nCols + "," + dataSet.data.nnz)
+      nb.randomInit(dataSet.data, logSoftLabels)
 
-    nb.oneEMRound(dataSet.data)
-    println(ArrayUtils.matrixString(nb.logTheta))
+      nb.emTillConvergence(dataSet.data, logSoftLabels)
+
+
+
+      val perf = dataSet.trueClassMetrics(nb.logTheta)
+      println("performance : " + perf)
+      if (perf._1 > 0.95) {
+        goodFit = true
+        if (nNoise + nGiveaway < 50) {
+          println("est theta:")
+          println(ArrayUtils.matrixString(nb.logTheta))
+          println("true theta:")
+          println(ArrayUtils.matrixString(dataSet.rates))
+        }
+      }
+      itr += 1
+    }
+    goodFit should be (true)
   }
 
 
@@ -114,7 +132,49 @@ class MultinomialNaiveBayesTest extends FunSuite with ShouldMatchers {
 
 }
 
-class BinomialTestData(val rates: Array[Array[Float]], val priors: Array[Float], val data: SparseBinaryRowMatrix, val trueLabels: Array[Int])
+class BinomialTestData(val rates: Array[Array[Float]], val priors: Array[Float], val data: SparseBinaryRowMatrix,
+                       val trueLabels: Array[Int]) {
+  def trueClassMetrics(logTheta: Array[Array[Float]]) = {
+    var ll = 0f
+    var idx = 0
+    var avgLikelihood = 0f
+    var avgLikelihoodByClass = new Array[Float](priors.length)
+    var countsPerClass = new Array[Float](priors.length)
+    val logPriors = priors.map{math.log(_).asInstanceOf[Float]}
+    val posteriors = new Array[Float](priors.length)
+    data.foreach {vector =>
+      MultinomialNaiveBayes.classPosteriors(vector, logTheta, logPriors, posteriors)
+      val klass = trueLabels(idx)
+      avgLikelihood += posteriors(klass)
+      avgLikelihoodByClass(klass) += posteriors(klass)
+      countsPerClass(klass) += 1
+      ll += math.log(posteriors(trueLabels(idx))).asInstanceOf[Float]
+      if (idx % 100 == 0) {
+        println(klass + "\t" + posteriors.mkString(","))
+      }
+      idx += 1
+    }
+    avgLikelihood /= trueLabels.length
+    (avgLikelihood, ll, avgLikelihoodByClass.zipWithIndex.map{x => x._1 / countsPerClass(x._2)}.mkString("{", ",", "}"), countsPerClass.mkString("{", ",", "}"))
+  }
+
+  def makeLogSoftLabels(strength: Float) = {
+    val logSoftLabels = new Array[Array[Float]](data.nRows)
+    var rowIdx = 0
+    val strong = math.log(strength).asInstanceOf[Float]
+    val weak = math.log( (1 - strength) / (priors.length - 1)).asInstanceOf[Float]
+    while (rowIdx < data.nRows) {
+      logSoftLabels(rowIdx) = new Array[Float](priors.length)
+      var klassIdx = 0
+      while (klassIdx < priors.length) {
+        logSoftLabels(rowIdx)(klassIdx) = if (trueLabels(rowIdx) == klassIdx) strong else weak
+        klassIdx += 1
+      }
+      rowIdx += 1
+    }
+    logSoftLabels
+  }
+}
 
 object BinomialTestData {
   def generate(nSamples: Int, priors: Array[Float], rates: Array[Array[Float]]) = {
