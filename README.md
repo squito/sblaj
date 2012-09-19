@@ -27,8 +27,12 @@ Getting Started
 SBLAJ can be built using sbt.  Simply check out the source and run
 
 ```
-sbt assembly
+sbt package
 ```
+
+to create a usable jar.  You can try out the code by running the units tests from within sbt, either with
+`test` to run all the tests, or eg. `~test-only org.sblaj.BaseSparseBinaryVectorTest` to repeatedly
+run one set of tests as you modify the code
 
 Current Status
 ----
@@ -52,7 +56,18 @@ Roadmap
 
 * SGD
 * Hadoop reader / writer
+* Matrix Market Import & Export
 * Spark API
 * Timing Comparisons
 * LDA
 * Integration with Scalala
+* Std filters & subsets, eg. min occurrence, min correlation, etc.
+
+* Additional Matrix Types
+    * Float, Column
+
+* Varint encoded matrices
+* Views -- api to index sub-portions of matrix, with lazy & force version
+* Mixed-mode matrices
+    * dense float + sparse binary (eg., time series)
+* HMM implementation
