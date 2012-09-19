@@ -30,6 +30,13 @@ SBLAJ can be built using sbt.  Simply check out the source and run
 sbt assembly
 ```
 
+Current Status
+----
+
+SBLAJ is still pre-0.1.  Some basic ideas are in place, but the API is still in flux.  It is actively developed,
+and the intention is to be a well-tested, robust library, not simply a toy demonstrating one idea.  Contributions
+and ideas from others would be greatly appreciated!
+
 Roadmap
 ----
 
