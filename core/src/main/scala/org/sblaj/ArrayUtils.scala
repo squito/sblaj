@@ -20,6 +20,13 @@ object ArrayUtils {
     sum
   }
 
+  /**
+   * Given a set of probabilities on the log scale, normalizes them so that they sum to one.
+   * The given array is modified to have the scaled probabilities (on *linear* scale, no longer log)
+   * and log of the normalizing constant is returned (often this is the log-likelihood).
+   *
+   * The method used here is robust to work even when the un-normalized values are very small
+   **/
   def stableLogNormalize(arr: Array[Float], startIdx: Int, endIdx: Int) : Float = {
     //first find approximate normalizing value
     var max = Float.MinValue
