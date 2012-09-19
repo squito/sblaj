@@ -70,4 +70,16 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     //TODO
   }
 
+
+  def getColSums() : Array[Int] = {
+    val colSums = new Array[Int](nCols)
+    var idx = 0
+    while (idx < nnz) {
+      val col = colIds(idx)
+      colSums(col) += 1
+      idx += 1
+    }
+    colSums
+  }
+
 }
