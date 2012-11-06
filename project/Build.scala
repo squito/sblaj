@@ -4,7 +4,7 @@ import Keys._
 object SparkBuild extends Build {
   lazy val core = Project("core", file("core"), settings = coreSettings)
 
-  lazy val examples = Project("examples", file("examples"), settings = examplesSettings) dependsOn (core)
+  lazy val ml = Project("ml", file("ml"), settings = mlSettings) dependsOn (core)
   lazy val spark = Project("spark", file("spark"), settings = sparkSettings) dependsOn (core)
 
   def sharedSettings = Defaults.defaultSettings ++ Seq(
@@ -38,8 +38,8 @@ object SparkBuild extends Build {
     )
   )
 
-  def examplesSettings = sharedSettings ++ Seq(
-    name := "sblaj-example"
+  def mlSettings = sharedSettings ++ Seq(
+    name := "sblaj-ml"
   )
 
   def sparkSettings = sharedSettings ++ Seq(
