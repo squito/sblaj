@@ -42,13 +42,12 @@ trait SparseBinaryVector {
   def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) : Unit
 }
 
-
-class BaseSparseBinaryVector (colIds: Array[Int], startIdx: Int, endIdx: Int)
+class BaseSparseBinaryVector(colIds: Array[Int], startIdx: Int, endIdx: Int)
 extends SparseBinaryVector {
 
-  private var theColIds = colIds
-  private var theStartIdx = startIdx
-  private var theEndIdx = endIdx
+  var theColIds = colIds
+  var theStartIdx = startIdx
+  var theEndIdx = endIdx
 
   /**
    * reset this object to point to a different vector
@@ -125,4 +124,18 @@ extends SparseBinaryVector {
     sb.append("]")
     sb.toString()
   }
+}
+
+
+//TODO figure out to get rid of the Int / Long types, and use @specialized.
+// however, not all of the methods make sense w/ Long col ids (eg., dot(Array[Float]), so probably need another base type
+class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int)
+
+class LongSparseBinaryVectorWithRowId(val rowId: Long, override val colIds: Array[Long],override val startIdx: Int,
+                                      override val endIdx: Int)
+  extends LongSparseBinaryVector(colIds, startIdx, endIdx) with RowId
+
+
+trait RowId {
+  val rowId: Long
 }

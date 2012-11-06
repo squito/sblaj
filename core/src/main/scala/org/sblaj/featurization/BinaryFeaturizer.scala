@@ -7,7 +7,7 @@ trait BinaryFeaturizer[T] {
   //TODO this interface needs some work
   // you should be able to featurize into a buffer, so you don't have to size your own arrays,
   // and it should take care of duplicates for you
-  def featurize(t: T, dictionary: DictionaryCache) : (Long, Array[Long])
+  def featurize(t: T, dictionary: DictionaryCache[String]) : (Long, Array[Long])
 }
 
 trait MurmurFeaturizer[T] extends BinaryFeaturizer[T] {
@@ -16,7 +16,7 @@ trait MurmurFeaturizer[T] extends BinaryFeaturizer[T] {
 
   def getId(t:T): Long
 
-  def featurize(t : T, dictionary: DictionaryCache) = {
+  def featurize(t : T, dictionary: DictionaryCache[String]) = {
     val id = getId(t)
     val featureNames = extractor(t)
     val features = new Array[Long](featureNames.size)
@@ -40,7 +40,7 @@ trait MurmurFeaturizer[T] extends BinaryFeaturizer[T] {
 object FeaturizerHelper {
 
   def applyFeaturizer[T](t: T, featurizer: BinaryFeaturizer[T],
-                       dictionary: DictionaryCache, matrixCounts: RowMatrixCounts) = {
+                       dictionary: DictionaryCache[String], matrixCounts: RowMatrixCounts) = {
     val (id, cols) = featurizer.featurize(t, dictionary)
     matrixCounts += cols
     LongRowSparseBinaryVector(id, cols)
@@ -49,7 +49,7 @@ object FeaturizerHelper {
 
   def mapFeaturize[T](ts: TraversableOnce[T], featurizer: BinaryFeaturizer[T]) = {
     val matrixCounts = new RowMatrixCounts()
-    val dictionary = new HashMapDictionaryCache()
+    val dictionary = new HashMapDictionaryCache[String]()
     //Q: Is there any way to do this w/ map? to force it to map from TraversableOnce to Traversable?
     val matrix = new Array[LongRowSparseBinaryVector](ts.size)
     var idx = 0
@@ -89,7 +89,7 @@ case class LongRowSparseBinaryVector(val id: Long, val colIds: Array[Long]) {
 }
 
 case class LongRowMatrix(val dims: RowMatrixCounts, val matrix: Traversable[LongRowSparseBinaryVector],
-                            val dictionary: DictionaryCache) {
+                            val dictionary: DictionaryCache[String]) {
 
   def toSparseBinaryRowMatrix() = {
 

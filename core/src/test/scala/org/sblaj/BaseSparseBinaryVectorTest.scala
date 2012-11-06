@@ -60,4 +60,26 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
       }
     }
   }
+
+
+  "arrays" should "be primitives" in {
+    //first, get the types of the various arrays
+    val ia = new Array[Int](5).getClass
+    val la = new Array[Long](5).getClass
+    val jia = new Array[java.lang.Integer](5).getClass
+    val jla = new Array[java.lang.Long](5).getClass
+    //first, just make sure our test can actually check for differences in type correctly
+    val types = Seq(ia,la, jia,jla)
+    (0 until 4).foreach { i =>
+      (i until 4).foreach {j =>
+        types(i) should not be (types(j))
+      }
+    }
+
+    //now the real test -- make our vectors, check the underlying types
+    val intVector = new BaseSparseBinaryVector[Int](new Array[Int](5), 0, 5)
+    val longVector = new BaseSparseBinaryVector[Long](new Array[Long](5), 0, 5)
+    intVector.colIds.getClass should be ia
+    longVector.colIds.getClass should be la
+  }
 }

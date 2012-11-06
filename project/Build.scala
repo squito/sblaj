@@ -5,6 +5,7 @@ object SparkBuild extends Build {
   lazy val core = Project("core", file("core"), settings = coreSettings)
 
   lazy val examples = Project("examples", file("examples"), settings = examplesSettings) dependsOn (core)
+  lazy val spark = Project("spark", file("spark"), settings = sparkSettings) dependsOn (core)
 
   def sharedSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.sblaj",
@@ -39,5 +40,12 @@ object SparkBuild extends Build {
 
   def examplesSettings = sharedSettings ++ Seq(
     name := "sblaj-example"
+  )
+
+  def sparkSettings = sharedSettings ++ Seq(
+    name := "sblaj-spark",
+    libraryDependencies ++= Seq(
+      "org.spark-project" % "spark-core_2.9.2" % "0.6.0"
+    )
   )
 }

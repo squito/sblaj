@@ -1,11 +1,13 @@
 package org.sblaj.featurization
 
+import collection._
+
 /**
  *
  */
 
-trait DictionaryCache {
-  def addMapping(name: String, code: Long)
+trait DictionaryCache[G] {
+  def addMapping(name: G, code: Long)
 
   def getEnumeration() : FeatureEnumeration
 }
@@ -14,15 +16,14 @@ trait FeatureEnumeration {
   def getEnumeratedId(code:Long) : Int
 }
 
-class HashMapDictionaryCache extends java.util.HashMap[String, Long] with DictionaryCache {
-  def addMapping(name: String, code: Long) {
+class HashMapDictionaryCache[G] extends mutable.HashMap[G, Long] with DictionaryCache[G] {
+  def addMapping(name: G, code: Long) {
     put(name, code)
   }
 
   def getEnumeration() = {
-    val ids = new Array[Long](size())
-    import scala.collection.JavaConverters._
-    values().asScala.zipWithIndex.foreach{
+    val ids = new Array[Long](size)
+    values.zipWithIndex.foreach{
       case (code, idx) =>
         ids(idx) = code
     }
@@ -32,7 +33,7 @@ class HashMapDictionaryCache extends java.util.HashMap[String, Long] with Dictio
   }
 }
 
-class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration {
+class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Serializable {
   def getEnumeratedId(code:Long) = {
     java.util.Arrays.binarySearch(ids, code)
   }
