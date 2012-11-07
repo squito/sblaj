@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="JAVA_MODULE" version="4">
+  <component name="FacetManager">
+    <facet type="scala" name="Scala">
+      <configuration>
+        <option name="compilerLibraryLevel" value="Project" />
+        <option name="compilerLibraryName" value="scala-2.9.1" />
+        <option name="fsc" value="true" />
+        <option name="uncheckedWarnings" value="true" />
+      </configuration>
+    </facet>
+  </component>
+  <component name="NewModuleRootManager" inherit-compiler-output="false">
+    <output url="file://$MODULE_DIR$/../spark/target/scala-2.9.1/classes" />
+    <output-test url="file://$MODULE_DIR$/../spark/target/scala-2.9.1/test-classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$/../spark">
+      <sourceFolder url="file://$MODULE_DIR$/../spark/src/main/scala" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../spark/src/main/java" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../spark/src/main/resources" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../spark/src/test/scala" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../spark/src/test/java" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/../spark/src/test/resources" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/../spark/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="org.scala-lang_scala-library_2.9.1" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty_jetty-server_7.5.3.v20111011" level="project" />
+    <orderEntry type="library" name="javax.servlet_servlet-api_2.5" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty_jetty-continuation_7.5.3.v20111011" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty_jetty-http_7.5.3.v20111011" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty_jetty-io_7.5.3.v20111011" level="project" />
+    <orderEntry type="library" name="org.eclipse.jetty_jetty-util_7.5.3.v20111011" level="project" />
+    <orderEntry type="library" name="log4j_log4j_1.2.16" level="project" />
+    <orderEntry type="library" name="org.slf4j_slf4j-api_1.6.1" level="project" />
+    <orderEntry type="library" name="org.slf4j_slf4j-log4j12_1.6.1" level="project" />
+    <orderEntry type="library" name="org.spark-project_spark-core_2.9.2_0.6.0" level="project" />
+    <orderEntry type="library" name="com.google.guava_guava_11.0.1" level="project" />
+    <orderEntry type="library" name="com.google.code.findbugs_jsr305_1.3.9" level="project" />
+    <orderEntry type="library" name="com.ning_compress-lzf_0.8.4" level="project" />
+    <orderEntry type="library" name="org.apache.hadoop_hadoop-core_0.20.205.0" level="project" />
+    <orderEntry type="library" name="commons-cli_commons-cli_1.2" level="project" />
+    <orderEntry type="library" name="xmlenc_xmlenc_0.52" level="project" />
+    <orderEntry type="library" name="commons-httpclient_commons-httpclient_3.0.1" level="project" />
+    <orderEntry type="library" name="junit_junit_3.8.1" level="project" />
+    <orderEntry type="library" name="commons-codec_commons-codec_1.4" level="project" />
+    <orderEntry type="library" name="org.apache.commons_commons-math_2.1" level="project" />
+    <orderEntry type="library" name="commons-configuration_commons-configuration_1.6" level="project" />
+    <orderEntry type="library" name="commons-collections_commons-collections_3.2.1" level="project" />
+    <orderEntry type="library" name="commons-logging_commons-logging_1.1.1" level="project" />
+    <orderEntry type="library" name="commons-digester_commons-digester_1.8" level="project" />
+    <orderEntry type="library" name="commons-beanutils_commons-beanutils_1.7.0" level="project" />
+    <orderEntry type="library" name="commons-beanutils_commons-beanutils-core_1.8.0" level="project" />
+    <orderEntry type="library" name="commons-net_commons-net_1.4.1" level="project" />
+    <orderEntry type="library" name="oro_oro_2.0.8" level="project" />
+    <orderEntry type="library" name="org.mortbay.jetty_jetty_6.1.26" level="project" />
+    <orderEntry type="library" name="org.mortbay.jetty_jetty-util_6.1.26" level="project" />
+    <orderEntry type="library" name="org.mortbay.jetty_servlet-api_2.5-20081211" level="project" />
+    <orderEntry type="library" name="tomcat_jasper-runtime_5.5.12" level="project" />
+    <orderEntry type="library" name="tomcat_jasper-compiler_5.5.12" level="project" />
+    <orderEntry type="library" name="org.mortbay.jetty_jsp-api-2.1_6.1.14" level="project" />
+    <orderEntry type="library" name="org.mortbay.jetty_servlet-api-2.5_6.1.14" level="project" />
+    <orderEntry type="library" name="org.mortbay.jetty_jsp-2.1_6.1.14" level="project" />
+    <orderEntry type="library" name="org.eclipse.jdt_core_3.1.1" level="project" />
+    <orderEntry type="library" name="ant_ant_1.6.5" level="project" />
+    <orderEntry type="library" name="commons-el_commons-el_1.0" level="project" />
+    <orderEntry type="library" name="net.java.dev.jets3t_jets3t_0.7.1" level="project" />
+    <orderEntry type="library" name="net.sf.kosmosfs_kfs_0.3" level="project" />
+    <orderEntry type="library" name="hsqldb_hsqldb_1.8.0.10" level="project" />
+    <orderEntry type="library" name="asm_asm-all_3.3.1" level="project" />
+    <orderEntry type="library" name="com.google.protobuf_protobuf-java_2.4.1" level="project" />
+    <orderEntry type="library" name="de.javakaffee_kryo-serializers_0.9" level="project" />
+    <orderEntry type="library" name="com.googlecode_kryo_1.04" level="project" />
+    <orderEntry type="library" name="com.googlecode_reflectasm_1.01" level="project" />
+    <orderEntry type="library" name="asm_asm_3.2" level="project" />
+    <orderEntry type="library" name="com.googlecode_minlog_1.2" level="project" />
+    <orderEntry type="library" name="com.typesafe.akka_akka-actor_2.0.3" level="project" />
+    <orderEntry type="library" name="com.typesafe_config_0.3.1" level="project" />
+    <orderEntry type="library" name="com.typesafe.akka_akka-remote_2.0.3" level="project" />
+    <orderEntry type="library" name="io.netty_netty_3.5.3.Final" level="project" />
+    <orderEntry type="library" name="net.debasishg_sjson_2.9.1_0.15" level="project" />
+    <orderEntry type="library" name="net.databinder_dispatch-json_2.9.1_0.8.5" level="project" />
+    <orderEntry type="library" name="org.apache.httpcomponents_httpclient_4.1" level="project" />
+    <orderEntry type="library" name="org.apache.httpcomponents_httpcore_4.1" level="project" />
+    <orderEntry type="library" name="org.objenesis_objenesis_1.2" level="project" />
+    <orderEntry type="library" name="commons-io_commons-io_1.4" level="project" />
+    <orderEntry type="library" name="voldemort.store.compress_h2-lzf_1.0" level="project" />
+    <orderEntry type="library" name="com.typesafe.akka_akka-slf4j_2.0.3" level="project" />
+    <orderEntry type="library" name="it.unimi.dsi_fastutil_6.4.4" level="project" />
+    <orderEntry type="library" name="colt_colt_1.2.0" level="project" />
+    <orderEntry type="library" name="concurrent_concurrent_1.3.4" level="project" />
+    <orderEntry type="library" name="cc.spray_spray-can_1.0-M2.1" level="project" />
+    <orderEntry type="library" name="cc.spray_spray-io_1.0-M2.1" level="project" />
+    <orderEntry type="library" name="cc.spray_spray-util_1.0-M2.1" level="project" />
+    <orderEntry type="library" name="cc.spray_spray-server_1.0-M2.1" level="project" />
+    <orderEntry type="library" name="cc.spray_spray-base_1.0-M2.1" level="project" />
+    <orderEntry type="library" name="org.jvnet_mimepull_1.6" level="project" />
+    <orderEntry type="library" name="org.parboiled_parboiled-scala_1.0.2" level="project" />
+    <orderEntry type="library" name="org.parboiled_parboiled-core_1.0.2" level="project" />
+    <orderEntry type="library" name="com.googlecode.concurrentlinkedhashmap_concurrentlinkedhashmap-lru_1.2" level="project" />
+    <orderEntry type="library" name="org.apache.mesos_mesos_0.9.0-incubating" level="project" />
+    <orderEntry type="library" name="cc.spray_twirl-api_2.9.2_0.5.2" level="project" />
+    <orderEntry type="library" name="commons-lang_commons-lang_2.6" level="project" />
+    <orderEntry type="library" scope="TEST" name="org.scalatest_scalatest_2.9.1_1.6.1_test" level="project" />
+    <orderEntry type="library" scope="TEST" name="org.scalacheck_scalacheck_2.9.1_1.9_test" level="project" />
+    <orderEntry type="library" scope="TEST" name="org.scala-tools.testing_test-interface_0.5_test" level="project" />
+    <orderEntry type="module" module-name="core" exported="" />
+  </component>
+</module>
+
