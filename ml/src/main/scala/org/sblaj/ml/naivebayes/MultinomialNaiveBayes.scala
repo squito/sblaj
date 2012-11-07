@@ -1,4 +1,4 @@
-package org.sblaj.examples.naivebayes
+package org.sblaj.ml.naivebayes
 
 import org.sblaj.{ArrayUtils, SparseBinaryRowMatrix, SparseBinaryVector}
 import org.sblaj.ArrayUtils._

@@ -1,4 +1,4 @@
-package org.sblaj.examples.samplers
+package org.sblaj.ml.samplers
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers

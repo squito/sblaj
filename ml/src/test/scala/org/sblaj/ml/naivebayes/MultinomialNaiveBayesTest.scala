@@ -1,4 +1,4 @@
-package org.sblaj.examples.naivebayes
+package org.sblaj.ml.naivebayes
 
 import org.scalatest.FunSuite
 import org.sblaj.{ArrayUtils, SparseBinaryRowMatrix, BaseSparseBinaryVector, SparseBinaryVector}
