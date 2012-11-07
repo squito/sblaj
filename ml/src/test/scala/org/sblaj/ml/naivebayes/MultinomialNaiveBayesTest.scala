@@ -4,7 +4,7 @@ import org.scalatest.FunSuite
 import org.sblaj.{ArrayUtils, SparseBinaryRowMatrix, BaseSparseBinaryVector, SparseBinaryVector}
 import org.scalatest.matchers.ShouldMatchers
 import org.sblaj.ArrayUtils._
-import org.sblaj.examples.samplers.{BinomialSampler, MultinomialSampler}
+import org.sblaj.ml.samplers.{BinomialSampler, MultinomialSampler}
 
 /**
  *
