@@ -74,7 +74,7 @@ class MultinomialNaiveBayesTest extends FunSuite with ShouldMatchers {
     var goodFit = false
     var itr = 0
     while (!goodFit && itr < 100) {
-      val dataSet = generatePowerLawTestData(3, classPriors, 100000, nGiveaway, 0.9f, 0.1f, nNoise, 0.1f, 1e-5f)
+      val dataSet = BinomialTestData.generatePowerLawTestData(3, classPriors, 100000, nGiveaway, 0.9f, 0.1f, nNoise, 0.1f, 1e-5f)
       val logSoftLabels = dataSet.makeLogSoftLabels(0.7f)
       println(dataSet.data.nRows + "," + dataSet.data.nCols + "," + dataSet.data.nnz)
       nb.randomInit(dataSet.data, logSoftLabels)
@@ -100,34 +100,6 @@ class MultinomialNaiveBayesTest extends FunSuite with ShouldMatchers {
   }
 
 
-  def generatePowerLawTestData(nClasses:Int, priors: Array[Float], nSamples:Int, nGiveaway: Int, giveawayHigh: Float, giveawayLow: Float,
-                               nNoise: Int, noiseHigh: Float, noiseLow: Float) : BinomialTestData = {
-    val rates = new Array[Array[Float]](nClasses)
-    var klass = 0
-    while (klass < nClasses) {
-      rates(klass) = new Array[Float](nGiveaway + nNoise)
-      klass += 1
-    }
-    var featureIdx = 0
-    while (featureIdx < nGiveaway) {
-      klass = 0
-      while (klass < nClasses) {
-        rates(klass)(featureIdx) = if (featureIdx % nClasses == klass) giveawayHigh else giveawayLow
-        klass += 1
-      }
-      featureIdx += 1
-    }
-    val noiseRates = BinomialSampler.genPowerLawRates(noiseHigh, noiseLow, nNoise)
-    while(featureIdx < nNoise + nGiveaway) {
-      klass = 0
-      while (klass < nClasses) {
-        rates(klass)(featureIdx) = noiseRates(featureIdx - nGiveaway)
-        klass += 1
-      }
-      featureIdx += 1
-    }
-    BinomialTestData.generate(nSamples, priors, rates)
-  }
 
 
 }
@@ -201,5 +173,35 @@ object BinomialTestData {
 
     new BinomialTestData(rates, priors, matrix, trueLabels)
   }
+
+  def generatePowerLawTestData(nClasses:Int, priors: Array[Float], nSamples:Int, nGiveaway: Int, giveawayHigh: Float, giveawayLow: Float,
+                               nNoise: Int, noiseHigh: Float, noiseLow: Float) : BinomialTestData = {
+    val rates = new Array[Array[Float]](nClasses)
+    var klass = 0
+    while (klass < nClasses) {
+      rates(klass) = new Array[Float](nGiveaway + nNoise)
+      klass += 1
+    }
+    var featureIdx = 0
+    while (featureIdx < nGiveaway) {
+      klass = 0
+      while (klass < nClasses) {
+        rates(klass)(featureIdx) = if (featureIdx % nClasses == klass) giveawayHigh else giveawayLow
+        klass += 1
+      }
+      featureIdx += 1
+    }
+    val noiseRates = BinomialSampler.genPowerLawRates(noiseHigh, noiseLow, nNoise)
+    while(featureIdx < nNoise + nGiveaway) {
+      klass = 0
+      while (klass < nClasses) {
+        rates(klass)(featureIdx) = noiseRates(featureIdx - nGiveaway)
+        klass += 1
+      }
+      featureIdx += 1
+    }
+    generate(nSamples, priors, rates)
+  }
+
 }
 
