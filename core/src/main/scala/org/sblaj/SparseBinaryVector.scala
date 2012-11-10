@@ -6,7 +6,7 @@ import java.util
  *
  */
 
-trait SparseBinaryVector {
+trait SparseBinaryVector extends Traversable[Int]{
   //TODO can the dense matrix class also be generified, and still performant?
 
   def nnz : Int
@@ -123,6 +123,14 @@ extends SparseBinaryVector {
       sb.append(colIds(idx))
     sb.append("]")
     sb.toString()
+  }
+
+  def foreach[U](f:Int => U) {
+    var idx = theStartIdx
+    while (idx < theEndIdx) {
+      f(colIds(idx))
+      idx += 1
+    }
   }
 }
 
