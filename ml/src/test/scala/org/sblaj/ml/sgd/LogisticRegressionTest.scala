@@ -36,7 +36,7 @@ class LogisticRegressionTest extends FunSuite with ShouldMatchers {
     (matrix, labels, weights)
   }
 
-  ignore("easy logistic regression") {
+  test("easy logistic regression") {
     //really easy test case
     val nSamples = 1e6.toInt
     val weights = List[Float](0.5f, -1.2f, 0.3f).toArray
@@ -57,7 +57,7 @@ class LogisticRegressionTest extends FunSuite with ShouldMatchers {
     }
   }
 
-  ignore("easy ridge regression") {
+  test("easy ridge regression") {
     val nSamples = 1e6.toInt
     val weights = List[Float](0.5f, -1.2f, 0.3f).toArray
     val featureRates = List[Float](0.5f, 0.5f, 0.1f).toArray
