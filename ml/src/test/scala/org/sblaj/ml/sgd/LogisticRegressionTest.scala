@@ -124,7 +124,6 @@ class LogisticRegressionTest extends FunSuite with ShouldMatchers {
     }
   }
 
-
   test("high dim Lasso LR") {
     //high dimensions, not that many sample points, and some very rare features
     val testSet = highDimData
@@ -140,4 +139,4 @@ class LogisticRegressionTest extends FunSuite with ShouldMatchers {
   }
 
 
-  }
+}
