@@ -137,7 +137,7 @@ extends SparseBinaryVector {
 
 //TODO figure out to get rid of the Int / Long types, and use @specialized.
 // however, not all of the methods make sense w/ Long col ids (eg., dot(Array[Float]), so probably need another base type
-class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int)
+class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int) extends Serializable
 
 class LongSparseBinaryVectorWithRowId(val rowId: Long, override val colIds: Array[Long],override val startIdx: Int,
                                       override val endIdx: Int)
