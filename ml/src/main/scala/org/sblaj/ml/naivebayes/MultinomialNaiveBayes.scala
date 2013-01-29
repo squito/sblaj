@@ -2,7 +2,7 @@ package org.sblaj.ml.naivebayes
 
 import org.sblaj.{ArrayUtils, SparseBinaryRowMatrix, SparseBinaryVector}
 import org.sblaj.ArrayUtils._
-import org.sblaj.examples.samplers.MultinomialSampler
+import org.sblaj.ml.samplers.MultinomialSampler
 
 /**
  *

@@ -1,7 +1,5 @@
 package org.sblaj.ml.samplers
 
-import org.sblaj.SparseBinaryRowMatrix
-
 /**
  *
  */
