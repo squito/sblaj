@@ -7,6 +7,8 @@ object SparkBuild extends Build {
   lazy val ml = Project("ml", file("ml"), settings = mlSettings) dependsOn (core)
   lazy val spark = Project("spark", file("spark"), settings = sparkSettings) dependsOn (core)
 
+  val qf = "http://repo.quantifind.com/content/repositories/"
+
   def sharedSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.sblaj",
     version := "0.1-SNAPSHOT",
@@ -15,7 +17,10 @@ object SparkBuild extends Build {
     unmanagedJars in Compile <<= baseDirectory map { base => (base / "lib" ** "*.jar").classpath },
     retrieveManaged := true,
     transitiveClassifiers in Scope.GlobalScope := Seq("sources"),
-    publishTo <<= baseDirectory { base => Some(Resolver.file("Local", base / "target" / "maven" asFile)(Patterns(true, Resolver.mavenStyleBasePattern))) },
+    publishTo <<= version {
+      (v: String) =>
+        Some("snapshots" at qf + "ext-snapshots")
+    },
     libraryDependencies ++= Seq(
       "org.eclipse.jetty" % "jetty-server" % "7.5.3.v20111011",
       "org.scalatest" %% "scalatest" % "1.6.1" % "test",
