@@ -1,18 +1,31 @@
 package org.sblaj.spark
 
 import org.sblaj.featurization.DictionaryCache
-import org.sblaj.{SparseBinaryRowMatrix, BaseSparseBinaryVector, LongSparseBinaryVectorWithRowId, MatrixDims}
-import spark.{SparkContext, RDD}
+import org.sblaj._
+import _root_.spark.{SparkContext, RDD}
 import collection._
+import org.sblaj.MatrixDims
 
 trait RowSparseVectorRDD[G] {
   def colDictionary: DictionaryCache[G]
   def dims: RowMatrixPartitionDims
+  //TODO add min feature counts
   def toEnumeratedVectorRDD(sc: SparkContext): EnumeratedRowSparseVectorRDD[G]
 }
 
 trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
+  /**
+   * collects the RDD into an in-memory matrix on the driver
+   */
   def toSparseMatrix(sc: SparkContext) : SparseBinaryRowMatrix
+
+  /**
+   * Applies a function `f` to all elements of this.
+   *
+   * Note that the function will be applied by spark on RDDs.  So sparks rules on serialization
+   * apply.  Also, sparks utilities like accumulators and broadcast variables are available.
+   */
+  def foreach(f: SparseBinaryVector => Unit)
 }
 
 case class RowMatrixPartitionDims(val totalDims: MatrixDims, val partitionDims: Map[Int, (Long,Long)])
@@ -58,5 +71,9 @@ class EnumeratedSparseVectorRDD[G](val vectorRDD: RDD[BaseSparseBinaryVector], v
 
   def toEnumeratedVectorRDD(sc: SparkContext) = this
   def dims = matrixDims
+
+  def foreach(f: SparseBinaryVector => Unit) {
+    vectorRDD.foreach(f)
+  }
 }
 

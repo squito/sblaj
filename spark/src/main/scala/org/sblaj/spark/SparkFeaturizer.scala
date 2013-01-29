@@ -19,11 +19,8 @@ object SparkFeaturizer {
    * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
    * will fit in memory.
    *
-   * @param data
-   * @param featureExtractor
-   * @tparam U
-   * @tparam G
-   * @return
+   * Note this doesn't persist the resulting RDD, which you *ALMOST CERTAINLY* want to do.
+   *
    */
   def rowPerRecord[U,G](data: RDD[U], sc: SparkContext)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
     val dictionary = sc.accumulableCollection(new HashMapDictionaryCache[G]())
