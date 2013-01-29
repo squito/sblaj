@@ -2,6 +2,7 @@ package org.sblaj.spark
 
 import spark.{AccumulatorParam, RDD, SparkContext}
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
+import _root_.spark.storage.StorageLevel
 import org.sblaj._
 import collection._
 
@@ -19,10 +20,8 @@ object SparkFeaturizer {
    * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
    * will fit in memory.
    *
-   * Note this doesn't persist the resulting RDD, which you *ALMOST CERTAINLY* want to do.
-   *
    */
-  def rowPerRecord[U,G](data: RDD[U], sc: SparkContext)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
+  def rowPerRecord[U,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
     val dictionary = sc.accumulableCollection(new HashMapDictionaryCache[G]())
     val nnzAcc = sc.accumulator(0l)
     val partitionDims = sc.accumulableCollection(mutable.HashMap[Int, (Long, Long)]())

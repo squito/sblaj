@@ -3,6 +3,7 @@ package org.sblaj.spark
 import org.sblaj.featurization.DictionaryCache
 import org.sblaj._
 import _root_.spark.{SparkContext, RDD}
+import _root_.spark.storage.StorageLevel
 import collection._
 import org.sblaj.MatrixDims
 
@@ -10,7 +11,7 @@ trait RowSparseVectorRDD[G] {
   def colDictionary: DictionaryCache[G]
   def dims: RowMatrixPartitionDims
   //TODO add min feature counts
-  def toEnumeratedVectorRDD(sc: SparkContext): EnumeratedRowSparseVectorRDD[G]
+  def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY): EnumeratedRowSparseVectorRDD[G]
 }
 
 trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
@@ -34,16 +35,19 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
                                 val matrixDims: RowMatrixPartitionDims,
                                 val colDictionary: DictionaryCache[G]) extends RowSparseVectorRDD[G] {
 
-  def dims = matrixDims
+  override def dims = matrixDims
 
-  def toEnumeratedVectorRDD(sc: SparkContext) = {
+  override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel) = {
     val enumeration = sc.broadcast(colDictionary.getEnumeration())
+    //TODO dictionary needs to be upated w/ enumeration
     val enumVectorsRdd = vectorRdd.map {
       v =>
         val enumeratedFeatures = v.colIds.map{enumeration.value.getEnumeratedId(_)}
         java.util.Arrays.sort(enumeratedFeatures)
         new BaseSparseBinaryVector(enumeratedFeatures, 0, enumeratedFeatures.length)  //TODO keep rowId
     }
+    enumVectorsRdd.persist(storageLevel)
+    enumVectorsRdd.count  //just to force the calculation
     new EnumeratedSparseVectorRDD[G](enumVectorsRdd, matrixDims, colDictionary)
   }
 }
@@ -51,7 +55,7 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
 //TODO this should be templated
 class EnumeratedSparseVectorRDD[G](val vectorRDD: RDD[BaseSparseBinaryVector], val matrixDims: RowMatrixPartitionDims,
                                    val colDictionary: DictionaryCache[G]) extends EnumeratedRowSparseVectorRDD[G] {
-  def toSparseMatrix(sc: SparkContext) = {
+  override def toSparseMatrix(sc: SparkContext) = {
     val vectors = vectorRDD.collect()
     val matrix = new SparseBinaryRowMatrix(nMaxRows = matrixDims.totalDims.nRows.toInt,
       nMaxNonZeros = matrixDims.totalDims.nnz.toInt,
@@ -69,10 +73,10 @@ class EnumeratedSparseVectorRDD[G](val vectorRDD: RDD[BaseSparseBinaryVector], v
     matrix
   }
 
-  def toEnumeratedVectorRDD(sc: SparkContext) = this
-  def dims = matrixDims
+  override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel) = this
+  override def dims = matrixDims
 
-  def foreach(f: SparseBinaryVector => Unit) {
+  override def foreach(f: SparseBinaryVector => Unit) {
     vectorRDD.foreach(f)
   }
 }
