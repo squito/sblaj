@@ -1,7 +1,10 @@
 import sbt._
 import Keys._
 
-object SparkBuild extends Build {
+object SblajBuild extends Build {
+  
+  lazy val root = Project(id = "root", base = file("."), settings = rootSettings) aggregate (core, ml, spark)
+
   lazy val core = Project("core", file("core"), settings = coreSettings)
 
   lazy val ml = Project("ml", file("ml"), settings = mlSettings) dependsOn (core)
@@ -29,6 +32,10 @@ object SparkBuild extends Build {
   )
 
   val slf4jVersion = "1.6.1"
+
+  def rootSettings = sharedSettings ++ Seq(
+    publish := {}
+  )
 
   def coreSettings = sharedSettings ++ Seq(
     name := "sblaj-core",
