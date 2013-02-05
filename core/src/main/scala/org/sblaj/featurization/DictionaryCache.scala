@@ -6,14 +6,16 @@ import collection._
  *
  */
 
-trait DictionaryCache[G] {
+trait DictionaryCache[G] extends Traversable[(G,Long)] {
   def addMapping(name: G, code: Long)
 
   def getEnumeration() : FeatureEnumeration
 }
 
 trait FeatureEnumeration {
-  def getEnumeratedId(code:Long) : Int
+  def getEnumeratedId(code:Long) : Option[Int]
+  def getLongId(code: Int) : Long
+  def subset(ids: Array[Int]) : FeatureEnumeration
 }
 
 class HashMapDictionaryCache[G] extends mutable.HashMap[G, Long] with DictionaryCache[G] {
@@ -34,7 +36,18 @@ class HashMapDictionaryCache[G] extends mutable.HashMap[G, Long] with Dictionary
 }
 
 class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Serializable {
-  def getEnumeratedId(code:Long) = {
-    java.util.Arrays.binarySearch(ids, code)
+  override def getEnumeratedId(code:Long) = {
+    val idx = java.util.Arrays.binarySearch(ids, code)
+    if (idx >= 0)
+      Some(idx)
+    else
+      None
+  }
+
+  override def getLongId(code: Int) = ids(code)
+
+  override def subset(ids: Array[Int]) = {
+    //TODO
+    null
   }
 }

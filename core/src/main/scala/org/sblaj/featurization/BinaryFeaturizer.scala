@@ -81,7 +81,7 @@ case class LongRowSparseBinaryVector(val id: Long, val colIds: Array[Long]) {
   def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
     var idx = 0
     while (idx < colIds.length) {
-      into(pos + idx) = enumeration.getEnumeratedId(colIds(idx))
+      into(pos + idx) = enumeration.getEnumeratedId(colIds(idx)).get
       idx += 1
     }
     pos + idx

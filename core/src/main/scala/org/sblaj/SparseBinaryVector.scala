@@ -132,6 +132,18 @@ extends SparseBinaryVector {
       idx += 1
     }
   }
+
+  /**
+   * return a new vector which only contains the given columns.
+   *
+   * @param colIds *sorted* array of columns to keep
+   * @return
+   */
+  def subset(colIds: Array[Int]) : BaseSparseBinaryVector = {
+    //slow, but works
+    val subsetColIds = theColIds.filter{util.Arrays.binarySearch(colIds, _) >= 0}
+    new BaseSparseBinaryVector(subsetColIds, 0, subsetColIds.length)
+  }
 }
 
 

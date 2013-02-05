@@ -1,10 +1,11 @@
 package org.sblaj.spark
 
-import spark.{AccumulatorParam, RDD, SparkContext}
+import _root_.spark._
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
 import _root_.spark.storage.StorageLevel
 import org.sblaj._
 import collection._
+import org.sblaj.MatrixDims
 
 object SparkFeaturizer {
 
@@ -21,55 +22,84 @@ object SparkFeaturizer {
    * will fit in memory.
    *
    */
-  def rowPerRecord[U,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
+  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
     val dictionary = sc.accumulableCollection(new HashMapDictionaryCache[G]())
     val nnzAcc = sc.accumulator(0l)
-    val partitionDims = sc.accumulableCollection(mutable.HashMap[Int, (Long, Long)]())
-    val vectorRdd = data.mapPartitionsWithSplit{
-      case (split, itr) =>
-        /* We want to process the data in an iterative fashion, BUT, when the iterator
-         * is done, then we want to store the size of the partition in the accumulator.  So, wrap with a special
-         * iterator that gets to "cleanup" when the inner iterator is done
-         */
-        var partitionsRows = 0l
-        var partitionNnz = 0l
-        new Iterator[LongSparseBinaryVectorWithRowId](){
-          val sub = itr.map{
-            u =>
-            //TODO save rowId in a dictionary also??
-              val rowId = rowIdAssigner(u)
-              val features = featureExtractor(u)
-              val featureIds = new Array[Long](features.size)
-              nnzAcc += features.size
-              partitionsRows += 1
-              partitionNnz += features.size
-              var idx = 0
-              features.foreach{ f =>
-                val hash = Murmur64.hash64(f.toString)
-                dictionary.localValue.addMapping(f, hash)
-                featureIds(idx) = hash
-                idx += 1
-              }
-              java.util.Arrays.sort(featureIds)
-              new LongSparseBinaryVectorWithRowId(rowId, featureIds, 0, featureIds.length)
-          }
-          def next = sub.next
-          def hasNext = {
-            val r = sub.hasNext
-            if (!r) {
-              //now store our accumulator updates
-              partitionDims.localValue += (split -> (partitionsRows, partitionNnz))
-            }
-            r
-          }
-        }
-    }
+
+    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
     val nRows = vectorRdd.count
     val nnz = nnzAcc.value
     val colDictionary = dictionary.value
     val nCols = colDictionary.size
     val matrixDims = new MatrixDims(nRows, nCols, nnz)
     val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
+    println("creating rdd matrix w/ dims = " + fullDims.totalDims)
     new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
   }
+
+
+  def mapWithPartitionDims[A : ClassManifest, B : ClassManifest](
+    rdd: RDD[A],
+    sc: SparkContext
+  )(
+    transform: Iterator[A] => (FinalValueIterator[B,(Long,Long)])
+  ) : (RDD[B], Accumulable[mutable.HashMap[Int, (Long,Long)], _]) = {
+    val partitionDims = sc.accumulableCollection(mutable.HashMap[Int, (Long, Long)]())
+    val transformedRDD = rdd.mapPartitionsWithSplit{
+      case (split, itr) =>
+        val finalValIterator = transform(itr)
+        new Iterator[B]() {
+          def next = finalValIterator.next
+          def hasNext = {
+            val r = finalValIterator.hasNext
+            if (!r) {
+              //now store our accumulator updates
+              partitionDims.localValue += (split -> finalValIterator.finalValue)
+            }
+            r
+          }
+        }
+    }
+
+    (transformedRDD, partitionDims)
+  }
 }
+
+trait FinalValueIterator[A,B] extends Iterator[A] {
+  def finalValue : B
+}
+
+private class TransformIter[U,G](
+    val itr: Iterator[U],
+    val rowIdAssigner: U => Long,
+    val featureExtractor: U => Traversable[G],
+    val nnz: Accumulator[Long],
+    val dictionary: Accumulable[HashMapDictionaryCache[G], (G, Long)]
+) extends FinalValueIterator[LongSparseBinaryVectorWithRowId, (Long,Long)] {
+  var partitionsRows = 0l
+  var partitionNnz = 0l
+  val sub = itr.map{
+    u =>
+    //TODO save rowId in a dictionary also??
+      val rowId = rowIdAssigner(u)
+      val features = featureExtractor(u)
+      val featureIds = new Array[Long](features.size)
+      nnz += features.size
+      partitionsRows += 1
+      partitionNnz += features.size
+      var idx = 0
+      features.foreach{ f =>
+        val hash = Murmur64.hash64(f.toString)
+        dictionary.localValue.addMapping(f, hash)
+        featureIds(idx) = hash
+        idx += 1
+      }
+      java.util.Arrays.sort(featureIds)
+      new LongSparseBinaryVectorWithRowId(rowId, featureIds, 0, featureIds.length)
+  }
+  override def next = sub.next
+  override def hasNext = sub.hasNext
+  override def finalValue = (partitionsRows, partitionNnz)
+}
+
+
