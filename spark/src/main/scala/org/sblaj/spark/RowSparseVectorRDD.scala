@@ -42,6 +42,8 @@ trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
   }
 
   def subsetColumnById(sc: SparkContext, ids: Array[Int]) : EnumeratedRowSparseVectorRDD[G]
+
+  def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) : EnumeratedRowSparseVectorRDD[G]
 }
 
 case class RowMatrixPartitionDims(val totalDims: MatrixDims, val partitionDims: Map[Int, (Long,Long)])
@@ -135,6 +137,37 @@ class EnumeratedSparseVectorRDD[G](
       partitionDims = partitionDims.value
     )
     new EnumeratedSparseVectorRDD[G](subRdd, subDims, colDictionary, subsetEnumeration)
+  }
+
+  override def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) = {
+    //filter the rdd, but also keep track of nrows & nnz per partition
+    val totalRows = sc.accumulator(0l)
+    val totalNnz = sc.accumulator(0l)
+    class TransformIter(val itr: Iterator[BaseSparseBinaryVector])
+      extends FinalValueIterator[BaseSparseBinaryVector, (Long,Long)] {
+      var nrows = 0
+      var nnz = 0
+      val sub = itr.filter{vector =>
+        val ok = f(vector)
+        if (ok) {
+          nrows += 1
+          nnz += vector.nnz
+          totalRows += 1
+          totalNnz += vector.nnz
+        }
+        ok
+      }
+      def next = sub.next
+      def hasNext = sub.hasNext
+      def finalValue = (nrows, nnz)
+    }
+
+    val (subRdd, partitionDims) = SparkFeaturizer.mapWithPartitionDims(vectorRDD, sc)(itr => new TransformIter(itr))
+    val subDims = new RowMatrixPartitionDims(
+      new MatrixDims(nRows = totalRows.value, nCols =  matrixDims.totalDims.nCols, nnz = totalNnz.value),
+      partitionDims = partitionDims.value
+    )
+    new EnumeratedSparseVectorRDD[G](subRdd, subDims, colDictionary, colEnumeration)
   }
 }
 
