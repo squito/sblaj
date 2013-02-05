@@ -11,6 +11,7 @@ object SblajBuild extends Build {
   lazy val spark = Project("spark", file("spark"), settings = sparkSettings) dependsOn (core)
 
   val qf = "http://repo.quantifind.com/content/repositories/"
+  val qfExtSnapshotRepo = "Quantifind External Snapshots" at "http://repo.quantifind.com/content/repositories/ext-snapshots/"
 
   def sharedSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.sblaj",
@@ -24,6 +25,11 @@ object SblajBuild extends Build {
       (v: String) =>
         Some("snapshots" at qf + "ext-snapshots")
     },
+    resolvers ++= Seq(
+      "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
+      "JBoss Repository" at "http://repository.jboss.org/nexus/content/repositories/releases/",
+      qfExtSnapshotRepo
+    ),
     libraryDependencies ++= Seq(
       "org.eclipse.jetty" % "jetty-server" % "7.5.3.v20111011",
       "org.scalatest" %% "scalatest" % "1.6.1" % "test",
@@ -39,10 +45,6 @@ object SblajBuild extends Build {
 
   def coreSettings = sharedSettings ++ Seq(
     name := "sblaj-core",
-    resolvers ++= Seq(
-      "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
-      "JBoss Repository" at "http://repository.jboss.org/nexus/content/repositories/releases/"
-    ),
     libraryDependencies ++= Seq(
       "log4j" % "log4j" % "1.2.16",
       "org.slf4j" % "slf4j-api" % slf4jVersion,
@@ -57,7 +59,7 @@ object SblajBuild extends Build {
   def sparkSettings = sharedSettings ++ Seq(
     name := "sblaj-spark",
     libraryDependencies ++= Seq(
-      "org.spark-project" % "spark-core_2.9.2" % "0.6.0"
+      "org.spark-project" % "spark-core_2.9.2" % "0.7.0-SNAPSHOT"
     )
   )
 }
