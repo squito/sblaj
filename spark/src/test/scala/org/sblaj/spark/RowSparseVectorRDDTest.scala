@@ -13,6 +13,7 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
   var sc : SparkContext = null
 
   before {
+    SparkFeaturizerTest.silenceSparkLogging
     sc = new SparkContext("local[4]", "row sparse vector rdd test")
   }
 
@@ -24,21 +25,27 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
   }
 
   test("enumerated") {
-    val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
-    val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, spark.storage.StorageLevel.MEMORY_ONLY)
-    enumerated.colDictionary should be (matrixRdd.colDictionary)
-    enumerated.matrixDims should be (matrixRdd.matrixDims)
-    val enumeration = enumerated.colEnumeration
-    val nFeatures = matrixRdd.matrixDims.totalDims.nCols.toInt
-    //check enuerated ids are in valid range, and are all distinct
-    val enumeratedIds = enumerated.colDictionary.map{ case (_,longId) =>
-      val enumId = enumeration.getEnumeratedId(longId)
-      enumId should be ('defined)
-      enumId.get should be  < (nFeatures)
-      enumId.get should be >= (0)
-      enumId.get
-    }.toSet
-    enumeratedIds.size should be (nFeatures)
+    SparkFeaturizerTest.withTestLock{
+      println("beginnging enumerated in RowSparseVector")
+      val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
+      val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, spark.storage.StorageLevel.MEMORY_ONLY)
+      enumerated.colDictionary should be (matrixRdd.colDictionary)
+      enumerated.matrixDims should be (matrixRdd.matrixDims)
+      val enumeration = enumerated.colEnumeration
+      val nFeatures = matrixRdd.matrixDims.totalDims.nCols.toInt
+      //check enuerated ids are in valid range, and are all distinct
+      val enumeratedIds = enumerated.colDictionary.map{ case (_,longId) =>
+        val enumId = enumeration.getEnumeratedId(longId)
+        enumId should be ('defined)
+        enumId.get should be  < (nFeatures)
+        enumId.get should be >= (0)
+        enumId.get
+      }.toSet
+      enumeratedIds.size should be (nFeatures)
+      println("finishing enumerated")
+      sc.stop
+      println("finished enumerated")
+    }
   }
 //
 //  test("subset columns") {

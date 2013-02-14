@@ -5,15 +5,14 @@ import org.scalatest.matchers.ShouldMatchers
 import spark.SparkContext
 import org.sblaj.MatrixDims
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
-import com.qf.util.Logging
 import org.apache.log4j.{Logger, Level}
 
 class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAfter {
 
   var sc : SparkContext = null
   before {
-    sc = new SparkContext("local[4]", "featurization test")
     SparkFeaturizerTest.silenceSparkLogging
+    sc = new SparkContext("local[4]", "featurization test")
   }
 
   after {
@@ -22,7 +21,8 @@ class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAft
     System.clearProperty("spark.driver.port")
   }
 
-  test("featurization") {
+  test("featurization") { SparkFeaturizerTest.withTestLock{
+    println("beginning featurization in SparkFeaturizer")
     val matrixRDD = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
 
     //check dims
@@ -46,19 +46,27 @@ class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAft
         val id = row.rowId
         java.util.Arrays.binarySearch(row.colIds, Murmur64.hash64(id.toString)) should be >= (0)
     }
-  }
 
-  test ("multi-featurize") {
+  }}
+
+  test ("multi-featurize") { SparkFeaturizerTest.withTestLock{
+
     val m1 = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
     val m2 = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
 
     println(m1.dims.totalDims)
     println(m2.dims.totalDims)
-  }
+  }}
 
 }
 
 object SparkFeaturizerTest {
+
+  val testLock = new Object()
+  def withTestLock(body:  => Unit) {
+    testLock.synchronized(body)
+  }
+
   def makeSimpleMatrixRDD(sc: SparkContext) : LongRowSparseVectorRDD[String] = {
     val origData = sc.parallelize(1 to 1e3.toInt, 20)
     val matrixRDD = SparkFeaturizer.rowPerRecord(origData, sc) {_.toLong} { i =>
@@ -80,7 +88,7 @@ object SparkFeaturizerTest {
       loggerName =>
         val logger = Logger.getLogger(loggerName)
         val prevLevel = logger.getLevel()
-        logger.setLevel(level)
+        logger.setLevel(Level.WARN)
         loggerName -> prevLevel
     }
   }
