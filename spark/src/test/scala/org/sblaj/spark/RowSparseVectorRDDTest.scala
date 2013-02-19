@@ -47,18 +47,17 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
       println("finished enumerated")
     }
   }
-//
-//  test("subset columns") {
-//    val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
-//    val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, spark.storage.StorageLevel.MEMORY_ONLY)
-//    val subset = enumerated.subsetColumnsByFeature(sc){
-//      name => name.equals("wakka") || name.equals("ooga booga") || name.equals("foobar")
-//    }
-//    val dims = subset.dims.totalDims
-//    dims.nRows should be (matrixRdd.matrixDims.totalDims.nRows)
-//    dims.nCols should be (3)
-//    dims.nnz should be (5)  //TODO
-//
-//  }
+
+  test("subset columns") {
+    val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
+    val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, spark.storage.StorageLevel.MEMORY_ONLY)
+    val subset = enumerated.subsetColumnsByFeature(sc){
+      name => name.equals("wakka") || name.equals("ooga booga") || name.equals("foobar")
+    }
+    val dims = subset.dims.totalDims
+    dims.nRows should be (matrixRdd.matrixDims.totalDims.nRows)
+    dims.nCols should be (3)
+    dims.nnz should be (1000 / 2 + 1000 / 5 + 1000 / 13)
+  }
 
 }
