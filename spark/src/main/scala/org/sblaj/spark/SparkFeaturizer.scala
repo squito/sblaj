@@ -34,6 +34,7 @@ object SparkFeaturizer {
     val matrixDims = new MatrixDims(nRows, nCols, nnz)
     val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
     println("creating rdd matrix w/ dims = " + fullDims.totalDims)
+    vectorRdd.persist(storageLevel)
     new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
   }
 
