@@ -21,3 +21,22 @@ class DenseFloatArrayAccumulator(
     }
   }
 }
+
+class Dense2DFloatArrayAccumulator(
+  val arr: Array[Array[Float]],
+  val nRow: Int,
+  val nCol: Int
+) extends Accumulators[Dense2DFloatArrayAccumulator] {
+  def zero = new Dense2DFloatArrayAccumulator(Array.ofDim[Float](nRow,nCol), nRow, nCol)
+  def ++=(other: Dense2DFloatArrayAccumulator) {
+    var rowIdx = 0
+    while (rowIdx < nRow) {
+      var colIdx = 0
+      while (colIdx < nCol) {
+        arr(rowIdx)(colIdx) += other.arr(rowIdx)(colIdx)
+        colIdx += 1
+      }
+      rowIdx += 1
+    }
+  }
+}
