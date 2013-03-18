@@ -13,3 +13,21 @@ trait IterativeAccumulatingAlgo[A <: Accumulators[A]] {
    */
   def iterationEnd(itr: Int, acc:A) : Boolean
 }
+
+object IterativeAccumulatingAlgo {
+  def run[A <: Accumulators[A]](
+    data: Traversable[SparseBinaryVector],
+    algo: IterativeAccumulatingAlgo[A],
+    maxIterations: Int = Integer.MAX_VALUE
+  ): A = {
+    val acc = algo.initializeAccumulators
+    var itr = 0
+    while (itr < maxIterations) {
+      algo.oneIteration(data, acc)
+      val continue = algo.iterationEnd(itr, acc)
+      if (!continue)
+        itr = Integer.MAX_VALUE
+    }
+    acc
+  }
+}
