@@ -27,6 +27,7 @@ class Dense2DFloatArrayAccumulator(
   val nRow: Int,
   val nCol: Int
 ) extends Accumulators[Dense2DFloatArrayAccumulator] {
+  def this(nRow:Int, nCol: Int) = this(Array.ofDim[Float](nRow,nCol), nRow, nCol)
   def zero = new Dense2DFloatArrayAccumulator(Array.ofDim[Float](nRow,nCol), nRow, nCol)
   def ++=(other: Dense2DFloatArrayAccumulator) {
     var rowIdx = 0
