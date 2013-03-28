@@ -1,6 +1,7 @@
 package org.sblaj.ml.lda
 
 import org.sblaj.{ArrayUtils, SparseBinaryVector}
+import org.sblaj.ml.utils.Dirichlet.digamma
 
 /**
  * Online Variational Bayes LDA, as described in
@@ -135,8 +136,4 @@ class OnlineVBLDA(
 
     }
   }
-
-
-  def digamma(f: Float) : Float = 0.0f  //TODO
-
 }
