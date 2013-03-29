@@ -8,6 +8,13 @@ import org.sblaj.ml.utils.Dirichlet.digamma
  *
  * Hoffman. Online Learning for Latent Dirichlet Allocation. 2010
  *
+ * This implementation focuses on optimizing:
+ * 1) cache-locality, by using tight arrays & choice of array / loop ordering.  (Could take this further still)
+ * 2) minimal memory use.  In particular, we don't store phi over all words in the document batch, b/c that could
+ *  require a lot more memory, even though we end up recomputing it for the lambda update
+ * 3) iterative inner loops.  I know they're ugly, but using functional-style in the iteration has a monstrous
+ *  performance penalty.  Maybe some cases could be switched to range.foreach, since that is roughly comparable.
+ *
  */
 class OnlineVBLDA(
   val nTopics: Int,
@@ -52,7 +59,7 @@ class OnlineVBLDA(
       nextGamma = prevGamma
       prevGamma = tmp
     }
-    //now prevNu holds the final assignment
+    //now prevGamma holds the final assignment
   }
 
 
@@ -85,7 +92,7 @@ class OnlineVBLDA(
     val diGammaSum = digamma(nuSum)
     topic = 0
     while (topic < nTopics) {
-      expLogTheta(topic) = digamma(prevGamma(topic)) - diGammaSum
+      expLogTheta(topic) = (digamma(prevGamma(topic)) - diGammaSum).toFloat
       topic += 1
     }
   }
@@ -102,7 +109,7 @@ class OnlineVBLDA(
       val digammaLambdaSum = digamma(lambdaSum)
       word = 0
       while (word < nWords) {
-        expLogBeta(topic * nWords + word) = digamma(lambda(topic * nWords + word)) - digammaLambdaSum
+        expLogBeta(topic * nWords + word) = (digamma(lambda(topic * nWords + word)) - digammaLambdaSum).toFloat
         word += 1
       }
       topic += 1
