@@ -43,7 +43,7 @@ trait SparseBinaryVector extends Traversable[Int]{
 }
 
 class BaseSparseBinaryVector(colIds: Array[Int], startIdx: Int, endIdx: Int)
-extends SparseBinaryVector {
+extends SparseBinaryVector with Serializable {
 
   var theColIds = colIds
   var theStartIdx = startIdx
