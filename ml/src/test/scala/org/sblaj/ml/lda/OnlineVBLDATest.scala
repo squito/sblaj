@@ -1,7 +1,7 @@
 package org.sblaj.ml.lda
 
 import org.scalatest.matchers.ShouldMatchers
-import org.sblaj.{SparseBinaryVectorBuilder, SparseBinaryVector}
+import org.sblaj.{ArrayUtils, SparseBinaryVectorBuilder, SparseBinaryVector}
 import collection._
 import org.sblaj.ml.samplers.MultinomialSampler
 import org.sblaj.ml.GeneratedDataSet
@@ -16,14 +16,26 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
     // really easy test case, but should confirm basics of whether algo works correctly or not
     val nTopics = 10
     val nWords = 1000
-    val nDocs = 500
+    val nDocs = 5000
     val nTopicsPerDocument = 3
     val wordsPerDocument = 100
 
     generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
   } { dataset =>
     val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords)
-    lda.learnFromDocument(dataset.documents(0))
+    val nIterations = 1
+    (0 to nIterations).foreach{ itr =>
+      (0 until dataset.nDocuments).foreach{doc =>
+        lda.learnFromDocument(dataset.documents(doc))
+      }
+      OnlineVBLDA.showTopWordsPerTopic(lda, 10)
+    }
+    (0 until 10).foreach{doc =>
+      lda.inferGamma(dataset.documents(doc))
+      dataset.showOneDoc(doc)
+      //TODO showing the posterior for gamma is pretty useless, instead should take the MAP of the dirichlet
+      println("\t" + lda.prevGamma.zipWithIndex.mkString(","))
+    }
   }
 
 
@@ -36,8 +48,8 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
       val l = topic * nWords.toDouble / nTopics
       val u = (topic + 1) * nWords.toDouble / nTopics
       (0 until nWords).foreach{word =>
-        val r = math.random.toFloat
-        cumTopicWordProbs(topic)(word) = if (word >= l && word < u) r else r / 10
+//        val r = math.random.toFloat
+        cumTopicWordProbs(topic)(word) = if (word >= l && word < u) 20 else 1
       }
       val sum = cumTopicWordProbs(topic).sum
       var cumsum = 0.0f
@@ -78,19 +90,21 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
 }
 
 private[lda] class LdaDataSet(
-  val topicWordProbs: Array[Array[Float]], //aka lambda
+  val topicWordProbs: Array[Array[Float]],
   val documentTopics: IndexedSeq[IndexedSeq[Int]],
   val documents: IndexedSeq[SparseBinaryVector]
 ) extends Serializable {
   def show {
-    (0 until documents.length).foreach{doc =>
-      println("**** " + doc + " : " + documentTopics(doc).mkString(","))
-      println(documents(doc).mkString(","))
-      //crude way of checking if words were realy sampled from right topics
-      println(documents(doc).map{_ / 100}.mkString(","))
-    }
+    (0 until documents.length).foreach{showOneDoc}
+  }
+  def showOneDoc(doc:Int){
+    println("**** " + doc + " : " + documentTopics(doc).mkString(","))
+    println(documents(doc).mkString(","))
+    //crude way of checking if words were realy sampled from right topics
+    println(documents(doc).map{_ / 100}.groupBy{t => t}.map{case(k,l) => (k,l.size)}.toArray.sortBy{_._1}.mkString(","))
   }
 
   def nTopics: Int = topicWordProbs.length
   def nWords: Int = topicWordProbs(0).length
+  def nDocuments: Int = documents.length
 }

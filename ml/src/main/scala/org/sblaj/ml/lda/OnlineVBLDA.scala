@@ -42,10 +42,8 @@ class OnlineVBLDA(
    * Infer the posterior for the topic assignments for the given document, update the internal
    * set of topic-word weights, and return the topic assignments.
    *
-   * Note that the returned array is a shared internal buffer, so
-   *  (a) it MUST NOT be modified
-   *  (b) do not save a reference to it for later -- if you need to store it for later, copy the values
-   *      somewhere else
+   * Note that the returned array is a shared internal buffer, so do not save a reference to it for later -- if you
+   * need to access it later, make a copy
    */
   def learnFromDocument(wordsInDocument: SparseBinaryVector): Array[Float] = {
     inferGamma(wordsInDocument)
@@ -72,10 +70,11 @@ class OnlineVBLDA(
         idx += 1
       }
       nuDelta = nuDelta / nTopics
-      println("nu update itr " + itr + " nuDelta = " + nuDelta)
+//      println("nu update itr " + itr + " nuDelta = " + nuDelta)
       val tmp = nextGamma
       nextGamma = prevGamma
       prevGamma = tmp
+      itr += 1
     }
     //now prevGamma holds the final assignment
   }
@@ -166,7 +165,7 @@ class OnlineVBLDA(
 object OnlineVBLDA {
   val defaultAlpha = 0.0001f
   val defaultEta = 0.0001f
-  val defaultTau0 = 0.5f
+  val defaultTau0 = 256f
   val defaultKappa = 0.5f
 
   def randomLambda(nTopics: Int, nWords: Int): Array[Float] = {
@@ -183,5 +182,14 @@ object OnlineVBLDA {
   def apply(nTopics: Int, nWords: Int) = {
     new OnlineVBLDA(nTopics, nWords, randomLambda(nTopics, nWords), alpha = defaultAlpha,
       eta = defaultEta, tau0 = defaultTau0, kappa = defaultKappa)
+  }
+
+  def showTopWordsPerTopic(lda: OnlineVBLDA, k: Int) {
+    val nWords = lda.nWords
+    (0 until lda.nTopics).foreach{topic =>
+      val topk = ArrayUtils.topK(lda.lambda, topic * nWords, (topic + 1) * nWords, k)
+      println("topic " + topic)
+      topk.foreach{case (id, v) => println("\t" + id + ": " + v)}
+    }
   }
 }
