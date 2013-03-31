@@ -20,6 +20,15 @@ object ArrayUtils {
     sum
   }
 
+  def arrayNormalize(arr: Array[Float], startIdx: Int, endIdx: Int) {
+    val sum = arraySum(arr, startIdx, endIdx)
+    var idx = startIdx
+    while (idx < endIdx) {
+      arr(idx) = arr(idx) / sum
+      idx += 1
+    }
+  }
+
   /**
    * Given a set of probabilities on the log scale, normalizes them so that they sum to one.
    * The given array is modified to have the scaled probabilities (on *linear* scale, no longer log)
