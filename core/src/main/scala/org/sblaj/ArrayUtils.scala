@@ -113,5 +113,14 @@ object ArrayUtils {
     cs
   }
 
+  def topK(arr: Array[Float], startIdx: Int, endIdx: Int, k: Int): IndexedSeq[(Int,Float)] = {
+    //terrible implementation ... really should use a bounded priority queue.
+    val l = endIdx - startIdx
+    val copy = new Array[Float](l)
+    System.arraycopy(arr, startIdx, copy, 0, l)
+    val sorted = copy.zipWithIndex.sortBy{- _._1}
+    sorted.slice(0, k).map{_.swap}
+  }
+
 
 }
