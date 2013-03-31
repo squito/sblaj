@@ -36,6 +36,23 @@ class OnlineVBLDA(
   private[lda] val expLogTheta: Array[Float] = new Array[Float](nTopics)
   private[lda] val expLogBeta: Array[Float] = new Array[Float](nTopics * nWords)
 
+  var documentsProcessed = 0
+
+  /**
+   * Infer the posterior for the topic assignments for the given document, update the internal
+   * set of topic-word weights, and return the topic assignments.
+   *
+   * Note that the returned array is a shared internal buffer, so
+   *  (a) it MUST NOT be modified
+   *  (b) do not save a reference to it for later -- if you need to store it for later, copy the values
+   *      somewhere else
+   */
+  def learnFromDocument(wordsInDocument: SparseBinaryVector): Array[Float] = {
+    inferGamma(wordsInDocument)
+    lambdaUpdate(wordsInDocument, documentsProcessed, documentsProcessed)
+    documentsProcessed += 1
+    prevGamma
+  }
 
   /**
    * infer the posterior topic mixture of one document.  This is the "E step" as described in the paper.

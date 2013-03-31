@@ -22,7 +22,8 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
 
     generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
   } { dataset =>
-    dataset.show
+    val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords)
+    lda.learnFromDocument(dataset.documents(0))
   }
 
 
@@ -89,4 +90,7 @@ private[lda] class LdaDataSet(
       println(documents(doc).map{_ / 100}.mkString(","))
     }
   }
+
+  def nTopics: Int = topicWordProbs.length
+  def nWords: Int = topicWordProbs(0).length
 }
