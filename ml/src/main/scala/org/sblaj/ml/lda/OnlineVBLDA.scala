@@ -11,9 +11,9 @@ import org.sblaj.ml.utils.Dirichlet.digamma
  * This implementation focuses on optimizing:
  * 1) cache-locality, by using tight arrays & choice of array / loop ordering.  (Could take this further still)
  * 2) minimal memory use.  In particular, we don't store phi over all words in the document batch, b/c that could
- *  require a lot more memory, even though we end up recomputing it for the lambda update
+ *  require a lot more memory.  This means we end up recomputing it for the lambda update
  * 3) iterative inner loops.  I know they're ugly, but using functional-style in the iteration has a monstrous
- *  performance penalty.  Maybe some cases could be switched to range.foreach, since that is roughly comparable.
+ *  performance penalty.  Maybe some cases could be switched to range.foreach, since that is not much worse.
  *
  */
 class OnlineVBLDA(
@@ -25,6 +25,7 @@ class OnlineVBLDA(
   val tau0: Float,
   val kappa: Float
 ) {
+
   private[lda] var nextGamma: Array[Float] = new Array[Float](nTopics)
   private[lda] var prevGamma: Array[Float] = new Array[Float](nTopics)
   private[lda] var phiOneWord: Array[Float] = new Array[Float](nTopics)
@@ -41,7 +42,7 @@ class OnlineVBLDA(
    */
   def inferGamma(wordsInDocument: SparseBinaryVector) {
     java.util.Arrays.fill(prevGamma, 1.0f)
-    //TODO copute expLogBeta
+    computeExpLogBeta()
     var itr = 0
     var nuDelta = Float.MaxValue
     while (nuDelta >= maxNuUpdate) {
@@ -119,7 +120,7 @@ class OnlineVBLDA(
   private[lda] def computeRho(t: Int): Float = math.pow((tau0 + t), -kappa).toFloat
 
   /**
-   * update our estimate of lambda given the topic assignments for this document
+   * update our estimate of lambda given the topic assignments for this document.  The "M Step" from the paper
    */
   private[lda] def lambdaUpdate(wordsInDocument: SparseBinaryVector, numDocuments: Int, itr: Int) {
     val rho = computeRho(itr)
@@ -142,5 +143,28 @@ class OnlineVBLDA(
       }
 
     }
+  }
+}
+
+object OnlineVBLDA {
+  val defaultAlpha = 0.0001f
+  val defaultEta = 0.0001f
+  val defaultTau0 = 0.5f
+  val defaultKappa = 0.5f
+
+  def randomLambda(nTopics: Int, nWords: Int): Array[Float] = {
+    val lambda = new Array[Float](nTopics * nWords)
+    (0 until nTopics).foreach{topic =>
+      (0 until nWords).foreach{word =>
+        lambda(topic * nWords + word) = math.random.toFloat
+      }
+      ArrayUtils.arrayNormalize(lambda, topic * nWords, (topic + 1) * nWords)
+    }
+    lambda
+  }
+
+  def apply(nTopics: Int, nWords: Int) = {
+    new OnlineVBLDA(nTopics, nWords, randomLambda(nTopics, nWords), alpha = defaultAlpha,
+      eta = defaultEta, tau0 = defaultTau0, kappa = defaultKappa)
   }
 }
