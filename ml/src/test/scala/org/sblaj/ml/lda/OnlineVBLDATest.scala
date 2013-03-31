@@ -1,43 +1,30 @@
 package org.sblaj.ml.lda
 
-import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import org.sblaj.{SparseBinaryVectorBuilder, SparseBinaryVector}
 import collection._
 import org.sblaj.ml.samplers.MultinomialSampler
+import org.sblaj.ml.GeneratedDataSet
 
 /**
  *
  */
 
-class OnlineVBLDATest extends FunSuite with ShouldMatchers {
+class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
 
-  test("basic lda") {
+  testDataFromFile("basic lda", "test/gendata/basic_lda") {
     // really easy test case, but should confirm basics of whether algo works correctly or not
     val nTopics = 10
     val nWords = 1000
-    val nDocs = 5
+    val nDocs = 500
     val nTopicsPerDocument = 3
-    val wordsPerDocument = 20
+    val wordsPerDocument = 100
 
-    val dataset = generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
+    generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
+  } { dataset =>
     dataset.show
   }
 
-  class LdaDataSet(
-    val topicWordProbs: Array[Array[Float]], //aka lambda
-    val documentTopics: IndexedSeq[IndexedSeq[Int]],
-    val documents: IndexedSeq[SparseBinaryVector]
-  ) {
-    def show {
-      (0 until documents.length).foreach{doc =>
-        println("**** " + doc + " : " + documentTopics(doc).mkString(","))
-        println(documents(doc).mkString(","))
-        //crude way of checking if words were realy sampled from right topics
-        println(documents(doc).map{_ / 100}.mkString(","))
-      }
-    }
-  }
 
   def generateEasyDataSet(nTopics: Int, nWords: Int, nDocuments: Int, topicsPerDocument: Int, wordsPerDocument: Int)
   : LdaDataSet = {
@@ -86,5 +73,20 @@ class OnlineVBLDATest extends FunSuite with ShouldMatchers {
       r += math.floor(math.random * nChoices).toInt
     }
     r.toArray.sorted
+  }
+}
+
+private[lda] class LdaDataSet(
+  val topicWordProbs: Array[Array[Float]], //aka lambda
+  val documentTopics: IndexedSeq[IndexedSeq[Int]],
+  val documents: IndexedSeq[SparseBinaryVector]
+) extends Serializable {
+  def show {
+    (0 until documents.length).foreach{doc =>
+      println("**** " + doc + " : " + documentTopics(doc).mkString(","))
+      println(documents(doc).mkString(","))
+      //crude way of checking if words were realy sampled from right topics
+      println(documents(doc).map{_ / 100}.mkString(","))
+    }
   }
 }
