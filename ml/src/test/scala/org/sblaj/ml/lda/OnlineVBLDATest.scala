@@ -1,16 +1,19 @@
 package org.sblaj.ml.lda
 
 import org.scalatest.matchers.ShouldMatchers
-import org.sblaj.{ArrayUtils, SparseBinaryVectorBuilder, SparseBinaryVector}
+import org.sblaj.{ SparseBinaryVectorBuilder, SparseBinaryVector}
 import collection._
 import org.sblaj.ml.samplers.MultinomialSampler
 import org.sblaj.ml.GeneratedDataSet
+import org.apache.log4j.Logger
 
 /**
  *
  */
 
 class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
+
+  val logger = Logger.getLogger(classOf[OnlineVBLDATest])
 
   testDataFromFile("basic lda", "test/gendata/basic_lda") {
     // really easy test case, but should confirm basics of whether algo works correctly or not
@@ -23,18 +26,20 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
     generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
   } { dataset =>
     val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords)
-    val nIterations = 1
+    val nIterations = 100
     (0 to nIterations).foreach{ itr =>
       (0 until dataset.nDocuments).foreach{doc =>
         lda.learnFromDocument(dataset.documents(doc))
       }
-      OnlineVBLDA.showTopWordsPerTopic(lda, 10)
+      if (itr % 10 == 0)
+        OnlineVBLDA.showTopWordsPerTopic(lda, 10)
+      logger.info("finished iteration " + itr)
     }
     (0 until 10).foreach{doc =>
       lda.inferGamma(dataset.documents(doc))
       dataset.showOneDoc(doc)
-      //TODO showing the posterior for gamma is pretty useless, instead should take the MAP of the dirichlet
-      println("\t" + lda.prevGamma.zipWithIndex.mkString(","))
+      val s = lda.prevGamma.sum
+      println("\t" + lda.prevGamma.zipWithIndex.map{case(alpha, idx) => idx -> alpha / s}.mkString(","))
     }
   }
 

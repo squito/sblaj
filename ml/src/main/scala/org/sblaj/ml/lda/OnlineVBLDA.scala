@@ -186,10 +186,15 @@ object OnlineVBLDA {
 
   def showTopWordsPerTopic(lda: OnlineVBLDA, k: Int) {
     val nWords = lda.nWords
+    val negLambda = lda.lambda.map{-_}
     (0 until lda.nTopics).foreach{topic =>
+      val sum = ArrayUtils.arraySum(lda.lambda, topic * nWords, (topic + 1) * nWords)
       val topk = ArrayUtils.topK(lda.lambda, topic * nWords, (topic + 1) * nWords, k)
+      val bottomk = ArrayUtils.topK(negLambda, topic * nWords, (topic + 1) * nWords, k)
       println("topic " + topic)
-      topk.foreach{case (id, v) => println("\t" + id + ": " + v)}
+      topk.foreach{case (id, v) => println("\t" + id + ": " + v / sum)}
+      println()
+      bottomk.foreach{case (id, v) => println("\t" + id + ": " + (-v / sum))}
     }
   }
 }
