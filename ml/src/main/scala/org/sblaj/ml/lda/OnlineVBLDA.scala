@@ -211,6 +211,7 @@ class OnlineVBLDA(
         topic = 0
         while (topic < nTopics) {
           lambdaUpdate(topic * nWords + word) += phiOneWord(topic)
+          topic += 1
         }
       }
     }
@@ -225,6 +226,7 @@ class OnlineVBLDA(
     while (idx < nTopics * nWords) {
       val oneLambdaUpdate = eta + batchSizeMultiplier * lambdaUpdate(idx)
       lambda(idx) = oneMinusRho * lambda(idx) + rho * oneLambdaUpdate
+      idx += 1
     }
   }
 }
