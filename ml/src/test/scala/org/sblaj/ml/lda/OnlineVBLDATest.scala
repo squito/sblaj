@@ -1,7 +1,7 @@
 package org.sblaj.ml.lda
 
 import org.scalatest.matchers.ShouldMatchers
-import org.sblaj.{ SparseBinaryVectorBuilder, SparseBinaryVector}
+import org.sblaj.{StreamToBatch, SparseBinaryVectorBuilder, SparseBinaryVector}
 import collection._
 import org.sblaj.ml.samplers.MultinomialSampler
 import org.sblaj.ml.GeneratedDataSet
@@ -25,18 +25,19 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
 
     generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
   } { dataset =>
-    val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords)
+    val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords, dataset.nDocuments)
     val nIterations = 100
     (0 to nIterations).foreach{ itr =>
-      (0 until dataset.nDocuments).foreach{doc =>
-        lda.learnFromDocument(dataset.documents(doc))
+      val batches = new StreamToBatch(lda.maxBatchSize, dataset.documents.iterator)
+      batches.iterator.foreach{documentBatch =>
+        lda.learnFromDocumentBatch(documentBatch)
       }
       if (itr % 10 == 0)
         OnlineVBLDA.showTopWordsPerTopic(lda, 10)
       logger.info("finished iteration " + itr)
     }
     (0 until 10).foreach{doc =>
-      lda.inferGamma(dataset.documents(doc))
+      lda.inferDocumentTopicPosteriors(dataset.documents(doc))
       dataset.showOneDoc(doc)
       val s = lda.prevGamma.sum
       println("\t" + lda.prevGamma.zipWithIndex.map{case(alpha, idx) => idx -> alpha / s}.mkString(","))

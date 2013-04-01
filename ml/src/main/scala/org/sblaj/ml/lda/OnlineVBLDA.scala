@@ -15,6 +15,7 @@ import org.sblaj.ml.utils.Dirichlet.digamma
  * 3) iterative inner loops.  I know they're ugly, but using functional-style in the iteration has a monstrous
  *  performance penalty.  Maybe some cases could be switched to range.foreach, since that is not much worse.
  *
+ * memory-used : O(nTopics * maxBatchSize + nTopics * nWords)
  */
 class OnlineVBLDA(
   val nTopics: Int,
@@ -23,7 +24,9 @@ class OnlineVBLDA(
   val alpha: Float,
   val eta: Float,
   val tau0: Float,
-  val kappa: Float
+  val kappa: Float,
+  val corpusSize: Int,
+  val maxBatchSize: Int
 ) {
 
   private[lda] var nextGamma: Array[Float] = new Array[Float](nTopics)
@@ -32,37 +35,52 @@ class OnlineVBLDA(
 
   val maxNuUpdate = 0.00001f
 
+  private[lda] val batchGammas: Array[Float] = new Array[Float](maxBatchSize * nTopics)
   //exp for "expectation", not exponential
-  private[lda] val expLogTheta: Array[Float] = new Array[Float](nTopics)
+  private[lda] val batchExpLogTheta: Array[Float] = new Array[Float](maxBatchSize * nTopics)
   private[lda] val expLogBeta: Array[Float] = new Array[Float](nTopics * nWords)
 
-  var documentsProcessed = 0
+  private[lda] val lambdaUpdate: Array[Float] = new Array[Float](nTopics * nWords)
+
+  var numUpdates = 0
 
   /**
-   * Infer the posterior for the topic assignments for the given document, update the internal
-   * set of topic-word weights, and return the topic assignments.
-   *
-   * Note that the returned array is a shared internal buffer, so do not save a reference to it for later -- if you
-   * need to access it later, make a copy
+   * Infer the posterior for the topic assignments for the given batch of documents, update the internal
+   * set of topic-word weights.
    */
-  def learnFromDocument(wordsInDocument: SparseBinaryVector): Array[Float] = {
-    inferGamma(wordsInDocument)
-    lambdaUpdate(wordsInDocument, documentsProcessed, documentsProcessed)
-    documentsProcessed += 1
+  def learnFromDocumentBatch(documentBatch: IndexedSeq[SparseBinaryVector]) {
+    computeExpLogBeta()
+    (0 until documentBatch.size).foreach { documentIdx =>
+      inferGamma(documentBatch(documentIdx), documentIdx)
+      //if I'm smart I could get rid of this arraycopy
+      System.arraycopy(prevGamma, 0, batchGammas, documentIdx * nTopics, nTopics)
+    }
+    lambdaBatchUpdate(documentBatch)
+    numUpdates += 1
+  }
+
+  /**
+   * use this method to infer the topic posteriors for one document when you do NOT want to update
+   * the model itself.
+   *
+   * Returned array is shared internal buffer
+   */
+  def inferDocumentTopicPosteriors(document: SparseBinaryVector): Array[Float] = {
+    //assumption here is that expLogBeta already holds correct value, from last model update
+    inferGamma(document, 0)
     prevGamma
   }
 
   /**
    * infer the posterior topic mixture of one document.  This is the "E step" as described in the paper.
    */
-  def inferGamma(wordsInDocument: SparseBinaryVector) {
+  private[lda] def inferGamma(wordsInDocument: SparseBinaryVector, documentBatchIdx: Int) {
     java.util.Arrays.fill(prevGamma, 1.0f)
-    computeExpLogBeta()
     var itr = 0
     var nuDelta = Float.MaxValue
     while (nuDelta >= maxNuUpdate) {
       java.util.Arrays.fill(nextGamma, alpha)  //TODO alpha really should be a vector, so you can have per-topic priors
-      gammaUpdate(wordsInDocument)
+      gammaUpdate(wordsInDocument, documentBatchIdx)
       nuDelta = 0f
       var idx = 0
       while (idx < nTopics) {
@@ -80,12 +98,12 @@ class OnlineVBLDA(
   }
 
 
-  private[lda] def gammaUpdate(wordsInDocument: SparseBinaryVector) {
-    computeExpLogTheta()
+  private[lda] def gammaUpdate(wordsInDocument: SparseBinaryVector, documentBatchIdx: Int) {
+    computeExpLogTheta(documentBatchIdx)
     wordsInDocument.foreach{word => // hopefully this foreach isn't too big a performance hit ...
       var topic = 0
       while (topic < nTopics) {
-        phiOneWord(topic) = expLogTheta(topic) + expLogBeta(topic * nWords + word)  //maybe expLogBeta should have topic on inside?
+        phiOneWord(topic) = batchExpLogTheta(documentBatchIdx * nTopics + topic) + expLogBeta(topic * nWords + word)  //maybe expLogBeta should have topic on inside?
         topic += 1
       }
       //TODO double check this is really doing the right scaling & normalization
@@ -99,7 +117,7 @@ class OnlineVBLDA(
   }
 
 
-  private[lda] def computeExpLogTheta() {
+  private[lda] def computeExpLogTheta(documentBatchIdx: Int) {
     var nuSum = 0f
     var topic = 0
     while (topic < nTopics) {
@@ -109,7 +127,7 @@ class OnlineVBLDA(
     val diGammaSum = digamma(nuSum)
     topic = 0
     while (topic < nTopics) {
-      expLogTheta(topic) = (digamma(prevGamma(topic)) - diGammaSum).toFloat
+      batchExpLogTheta(documentBatchIdx * nTopics + topic) = (digamma(prevGamma(topic)) - diGammaSum).toFloat
       topic += 1
     }
   }
@@ -135,29 +153,78 @@ class OnlineVBLDA(
 
   private[lda] def computeRho(t: Int): Float = math.pow((tau0 + t), -kappa).toFloat
 
-  /**
-   * update our estimate of lambda given the topic assignments for this document.  The "M Step" from the paper
-   */
-  private[lda] def lambdaUpdate(wordsInDocument: SparseBinaryVector, numDocuments: Int, itr: Int) {
-    val rho = computeRho(itr)
-    val oneMinusRho = 1 - rho
-    wordsInDocument.foreach{word =>
-      //we recompute phi here, to save memory of storing it
-      var topic = 0
-      while (topic < nTopics) {
-        phiOneWord(topic) = expLogTheta(topic) + expLogBeta(topic * nWords + word)  //maybe expLogBeta should have topic on inside?
-        topic += 1
-      }
-      //TODO double check this is really doing the right scaling & normalization
-      ArrayUtils.stableLogNormalize(phiOneWord, 0, nTopics)
-      topic = 0
-      while (topic < nTopics) {
-        val oldLambda = lambda(topic * nWords + word)
-        val newLambda = eta + numDocuments * phiOneWord(topic)
-        lambda(topic * nWords + word) = oldLambda * oneMinusRho + rho * newLambda
-        topic += 1
-      }
+//  /**
+//   * update our estimate of lambda given the topic assignments for this document.  The "M Step" from the paper
+//   */
+//  private[lda] def lambdaUpdate(wordsInDocument: SparseBinaryVector, itr: Int) {
+//    val rho = computeRho(itr)
+//    val oneMinusRho = 1 - rho
+//    wordsInDocument.foreach{word =>
+//      //we recompute phi here, to save memory of storing it
+//      var topic = 0
+//      while (topic < nTopics) {
+//        phiOneWord(topic) = expLogTheta(topic) + expLogBeta(topic * nWords + word)  //maybe expLogBeta should have topic on inside?
+//        topic += 1
+//      }
+//      //TODO double check this is really doing the right scaling & normalization
+//      ArrayUtils.stableLogNormalize(phiOneWord, 0, nTopics)
+//      topic = 0
+//      while (topic < nTopics) {
+//        val oldLambda = lambda(topic * nWords + word)
+//        val newLambda = eta + corpusSize * phiOneWord(topic)
+//        lambda(topic * nWords + word) = oldLambda * oneMinusRho + rho * newLambda
+//        topic += 1
+//      }
+//
+//    }
+//  }
 
+  /**
+   * update our estimate of lambda from this batch of documents.  The "M Step" from the paper.
+   * assumes assumes expLogBeta & batchExpLogTheta already store correct values for this batch
+   */
+  private[lda] def lambdaBatchUpdate(documentBatch: IndexedSeq[SparseBinaryVector]) {
+    zeroLambdaUpdate()
+    computeLambdaUpdate(documentBatch)
+    updateLambda(documentBatch.size)
+  }
+
+  private[lda] def zeroLambdaUpdate() {
+    var idx = 0
+    while (idx < nTopics * nWords) {
+      lambdaUpdate(idx) = 0f
+      idx += 1
+    }
+  }
+
+  private[lda] def computeLambdaUpdate(documentBatch: IndexedSeq[SparseBinaryVector]) {
+    (0 until documentBatch.size).foreach{documentBatchIdx =>
+      documentBatch(documentBatchIdx).foreach{word =>
+      //we recompute phi here, to save memory of storing it
+        var topic = 0
+        while (topic < nTopics) {
+          phiOneWord(topic) = batchExpLogTheta(documentBatchIdx * nTopics + topic) + expLogBeta(topic * nWords + word)  //maybe expLogBeta should have topic on inside?
+          topic += 1
+        }
+        //TODO double check this is really doing the right scaling & normalization
+        ArrayUtils.stableLogNormalize(phiOneWord, 0, nTopics)
+        topic = 0
+        while (topic < nTopics) {
+          lambdaUpdate(topic * nWords + word) += phiOneWord(topic)
+        }
+      }
+    }
+  }
+
+  private[lda] def updateLambda(batchSize: Int) {
+    val rho = computeRho(numUpdates)
+    val oneMinusRho = 1 - rho
+    val batchSizeMultiplier = corpusSize.toFloat / batchSize
+    var idx = 0
+    //note that this loop needs to update *every* value of lambda, even for those words that weren't in the batch.
+    while (idx < nTopics * nWords) {
+      val oneLambdaUpdate = eta + batchSizeMultiplier * lambdaUpdate(idx)
+      lambda(idx) = oneMinusRho * lambda(idx) + rho * oneLambdaUpdate
     }
   }
 }
@@ -167,6 +234,7 @@ object OnlineVBLDA {
   val defaultEta = 0.0001f
   val defaultTau0 = 256f
   val defaultKappa = 0.5f
+  val defaultMaxBatchSize = 256
 
   def randomLambda(nTopics: Int, nWords: Int): Array[Float] = {
     val lambda = new Array[Float](nTopics * nWords)
@@ -179,9 +247,10 @@ object OnlineVBLDA {
     lambda
   }
 
-  def apply(nTopics: Int, nWords: Int) = {
+  def apply(nTopics: Int, nWords: Int, corpusSize: Int) = {
     new OnlineVBLDA(nTopics, nWords, randomLambda(nTopics, nWords), alpha = defaultAlpha,
-      eta = defaultEta, tau0 = defaultTau0, kappa = defaultKappa)
+      eta = defaultEta, tau0 = defaultTau0, kappa = defaultKappa, corpusSize = corpusSize,
+      maxBatchSize = defaultMaxBatchSize)
   }
 
   def showTopWordsPerTopic(lda: OnlineVBLDA, k: Int) {
