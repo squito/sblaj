@@ -60,4 +60,25 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
       }
     }
   }
+
+  "asCountVector" should "have correct iteration" in {
+    val f = fixture()
+    val v = f.v
+    v.size should be (3)
+    v.toList should be (List(0,5,8))
+    val cv = v.asCountVector
+    cv.foreach{ case MTuple2(id, count) => count should be (1)}
+    cv.size should be (v.size)
+    v.reset(v.theColIds, 0, 3)
+    v.toList should be (List(0,1,2))
+    cv.foreach{ case MTuple2(id,count) => count should be (1)}
+    cv.map{_._1}.toList should be (v.toList)
+    cv.size should be (v.size)
+
+    val v2 = new BaseSparseBinaryVector(colIds = Array[Int](56,3,4,5,19,42,3), startIdx = 2, endIdx = 4)
+    v2.toList should be (List(4,5))
+    cv.reset(v2)
+    cv.foreach{case x@MTuple2(id,count) => count should be (1)}
+    cv.map{_._1}.toList should be (v2.toList)
+  }
 }

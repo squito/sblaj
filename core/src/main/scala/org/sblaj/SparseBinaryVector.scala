@@ -24,8 +24,8 @@ trait SparseBinaryVector extends Traversable[Int]{
   def dot(x:Array[Float]) : Float
 
   /**
-   * compute (this)x(theta), and *add* the result to <code>into<code>
-   * <p>
+   * compute (this)x(theta), and *add* the result to <code>into</code>
+   *
    * eg., take this as a row vector, and multiply it by the dense matrix
    * theta, and add the result to what is in the given array
    *
@@ -40,6 +40,13 @@ trait SparseBinaryVector extends Traversable[Int]{
    * @param into
    */
   def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) : Unit
+
+  def asCountVector: BinaryVectorAsCountVector[SparseBinaryVector] = new GenericSparseBinaryVectorToSparseCountVector(this)
+
+  //I can't figure out how to get more correct bounds here, but this is probably good enough
+  def asCountVector(into: BinaryVectorAsCountVector[SparseBinaryVector]) {
+    into.reset(this)
+  }
 }
 
 class BaseSparseBinaryVector(colIds: Array[Int], startIdx: Int, endIdx: Int)
@@ -158,4 +165,27 @@ class LongSparseBinaryVectorWithRowId(val rowId: Long, override val colIds: Arra
 
 trait RowId {
   val rowId: Long
+}
+
+trait BinaryVectorAsCountVector[-T <: SparseBinaryVector] extends SparseCountVector {
+  def reset(vector: T)
+}
+
+/**
+ * simple way of converting any SparseBinaryVector to a SparseCountVector.  Could probably be improved
+ * for specific implementations
+ */
+class GenericSparseBinaryVectorToSparseCountVector(var binaryVector: SparseBinaryVector)
+  extends SparseCountVector
+  with BinaryVectorAsCountVector[SparseBinaryVector]
+{
+  def foreach[U](f: MTuple2[Int,Int] => U) {
+    val pair = new MTuple2[Int,Int](0,0)
+    binaryVector.foreach{colId =>
+      pair._1 = colId
+      pair._2 = 1
+      f(pair)
+    }
+  }
+  def reset(vector: SparseBinaryVector) {binaryVector = vector}
 }
