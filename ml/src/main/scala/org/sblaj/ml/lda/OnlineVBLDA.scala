@@ -1,7 +1,7 @@
 package org.sblaj.ml.lda
 
 import org.sblaj.{ArrayUtils, SparseBinaryVector}
-import org.sblaj.ml.utils.Dirichlet.digamma
+import cc.mallet.types.Dirichlet.{digamma,logGamma}
 
 /**
  * Online Variational Bayes LDA, as described in
