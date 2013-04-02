@@ -320,8 +320,8 @@ class OnlineVBLDA(
 }
 
 object OnlineVBLDA {
-  val defaultAlpha = 0.0001f
-  val defaultEta = 0.0001f
+  val defaultAlpha = 0.001f
+  val defaultEta = 0.001f
   val defaultTau0 = 256f
   val defaultKappa = 0.5f
   val defaultMaxBatchSize = 256
