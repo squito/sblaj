@@ -242,6 +242,9 @@ class OnlineVBLDA(
       partial set of documents
     */
 
+    //TODO make a version of this that will use the values for gamma that have already been computed,
+    // eg. so that we can get a running estimate for each mini-batch
+
     var score = 0f
     var nDocs = 0
     documents.foreach{ doc =>
