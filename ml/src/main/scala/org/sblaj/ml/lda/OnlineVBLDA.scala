@@ -229,6 +229,91 @@ class OnlineVBLDA(
       idx += 1
     }
   }
+
+  def estimateEvidenceLowerBound(documents: Iterable[SparseBinaryVector]): Float = {
+    /*ELBO =
+      sum_d {
+        E[log p(doc_d | theta_d, beta)] +
+        E[log p(theta_d | alpha) - log q(theta | gamma_d)]
+      } +
+      E[log p(beta | eta) - log q (beta | lambda)]
+
+      As we aren't computing over *all* documents, we scale up the sum from the
+      partial set of documents
+    */
+
+    var score = 0f
+    var nDocs = 0
+    documents.foreach{ doc =>
+      score += documentELBOTerm(doc)
+      nDocs += 1
+    }
+
+    //compensate for sub-sampling of population of documents
+    score = score * corpusSize / nDocs
+
+    score += modelELBOTerm()
+
+    score
+  }
+
+
+  private val gammaLnAlpha = logGamma(alpha)
+  private val gammaLnAlphaK = logGamma(alpha * nTopics)
+
+  private[lda] def documentELBOTerm(document: SparseBinaryVector): Float = {
+    //E[log p(doc | theta, beta)]
+    //this will redo work if we've already got this stuff computed somewhere
+    inferDocumentTopicPosteriors(document)
+    val documentBatchIdx = 0
+    var score = 0f
+    document.foreach{word =>
+      var phiMax = 0f
+      forTopics{topic =>
+        val p = batchExpLogTheta(documentBatchIdx * nTopics + topic) + expLogBeta(topic * nWords + word)  //maybe expLogBeta should have topic on inside?
+        phiOneWord(topic) = p
+        if (phiMax < p) phiMax = p
+      }
+      var phiNorm = 0f
+      forTopics { topic =>
+        phiNorm += math.exp(phiOneWord(topic) - phiMax).toFloat
+      }
+      phiNorm = (math.log(phiNorm) + phiMax).toFloat
+      score += phiNorm
+    }
+
+    //E[log p(theta | alpha) - log q(theta | gamma)]
+    var gammaSum = 0f
+    forTopics{topic =>
+      score += (alpha - prevGamma(topic)) * batchExpLogTheta(documentBatchIdx * nTopics + topic)
+      score += (logGamma(prevGamma(topic)) - gammaLnAlpha).toFloat
+      gammaSum += prevGamma(topic)
+    }
+    score += (gammaLnAlphaK - logGamma(gammaSum)).toFloat
+    score
+  }
+
+  private val gammaLnEta = logGamma(eta)
+  private val gammaLnEtaW = logGamma(eta * nWords)
+  private[lda] def modelELBOTerm(): Float = {
+    // E[log p(beta | eta) - log q (beta | lambda)]
+    var score = 0f
+    forTopics{topic =>
+      var lambdaSum = 0f
+      forWords{word =>
+        val idx = topic * nWords + word
+        score += (eta - lambda(idx)) * expLogBeta(idx)
+        score += (logGamma(lambda(idx)) - gammaLnEta).toFloat
+        lambdaSum += lambda(idx)
+      }
+      score += (gammaLnEtaW - logGamma(lambdaSum)).toFloat
+    }
+    score
+  }
+
+  //when you don't need these loops to be super optimized ...
+  private def forTopics(f: Int => Unit) {(0 until nTopics).foreach{f}}
+  private def forWords(f: Int => Unit) {(0 until nWords).foreach{f}}
 }
 
 object OnlineVBLDA {

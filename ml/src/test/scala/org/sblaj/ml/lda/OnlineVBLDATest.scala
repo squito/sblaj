@@ -27,15 +27,29 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
   } { dataset =>
     val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords, dataset.nDocuments)
     val nIterations = 100
-    (0 to nIterations).foreach{ itr =>
+    var lastElbo : Option[Float] = None
+    val elbos = (0 to nIterations).flatMap{ itr =>
       val batches = new StreamToBatch(lda.maxBatchSize, dataset.documents.iterator)
       batches.iterator.foreach{documentBatch =>
         lda.learnFromDocumentBatch(documentBatch)
       }
-      if (itr % 10 == 0)
-        OnlineVBLDA.showTopWordsPerTopic(lda, 10)
+      val elboOpt = if (itr % 10 == 0) {
+        //print out the TRAINING set ELBO
+        val elbo = lda.estimateEvidenceLowerBound(dataset.documents)
+        val delta = lastElbo.map{elbo - _}
+        lastElbo = Some(elbo)
+        println("ELBO = " + elbo + " " + delta)
+        Some(elbo, delta)
+      } else None
       logger.info("finished iteration " + itr)
+      elboOpt.map{itr -> _}
     }
+    OnlineVBLDA.showTopWordsPerTopic(lda, 10)
+    println("ELBOS")
+    elbos.foreach{case (itr, (elbo, deltaOpt)) =>
+      println("itr: %3d elbo: %12f delta: %s".format(itr, elbo, deltaOpt.map{"%4f".format(_)}.getOrElse("NA")))
+    }
+
     (0 until 10).foreach{doc =>
       lda.inferDocumentTopicPosteriors(dataset.documents(doc))
       dataset.showOneDoc(doc)
