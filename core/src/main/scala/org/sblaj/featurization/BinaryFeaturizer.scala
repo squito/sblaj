@@ -3,7 +3,8 @@ package org.sblaj.featurization
 import org.sblaj.{LongSparseBinaryVector, SparseBinaryRowMatrix}
 import util.MurmurHash
 import org.sblaj.io.{DictionaryIO, VectorFileSet, VectorIO}
-import java.io.{PrintWriter, FileOutputStream, BufferedOutputStream, DataOutputStream}
+import java.io._
+import scala.Serializable
 
 trait BinaryFeaturizer[T] {
   //TODO this interface needs some work
@@ -66,25 +67,45 @@ object FeaturizerHelper {
     LongRowMatrix(matrixCounts, matrix, dictionary)
   }
 
-  def featurizeToFiles[T](ts: Iterator[T], featurizer: BinaryFeaturizer[T], files: VectorFileSet) = {
-    val matrixCounts = new RowMatrixCounts()
-    val dictionary = new HashMapDictionaryCache[String]()
-    val out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.vectorFile)))
+  def featurizeToFiles[T](ts: Iterator[T], featurizer: BinaryFeaturizer[T], files: VectorFileSet, maxPartSize: Int) = {
+    files.mkdirs()
+    var matrixCounts : RowMatrixCounts = null
+    var dictionary: HashMapDictionaryCache[String] = null
+    var out : DataOutputStream = null
+    def openPart(partNum: Int) = {
+      println("beginning part " + partNum)
+      matrixCounts = new RowMatrixCounts()
+      dictionary = new HashMapDictionaryCache[String]()
+      out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.getOneFileSet(partNum).vectorFile)))
+    }
+
+    def finishPart(partNum: Int) = {
+      println("finishing part " + partNum)
+      out.close()
+      DictionaryIO.writeDictionary(dictionary, files.getOneFileSet(partNum).dictionaryFile)
+
+      val dimsOut = new PrintWriter(files.getOneFileSet(partNum).dimensionFile)
+      dimsOut.println(matrixCounts.nRows)
+      dimsOut.println(matrixCounts.colIds.size())
+      dimsOut.println(matrixCounts.nnz)
+      dimsOut.close()
+    }
     var idx = 0
+    var partNum = 0
+    openPart(partNum)
     ts.foreach{ t =>
+      if (idx > maxPartSize) {
+        finishPart(partNum)
+        partNum += 1
+        idx = 0
+        openPart(partNum)
+      }
       val vector = applyFeaturizer(t, featurizer, dictionary, matrixCounts)
       val v = new LongSparseBinaryVector(vector.colIds, 0, vector.colIds.length)
       VectorIO.append(v, out)
       idx += 1
     }
-    out.close()
-    DictionaryIO.writeDictionary(dictionary, files.dictionaryFile)
-
-    val dimsOut = new PrintWriter(files.dimensionFile)
-    dimsOut.println(matrixCounts.nRows)
-    dimsOut.println(matrixCounts.colIds.size())
-    dimsOut.println(matrixCounts.nnz)
-    dimsOut.close()
+    finishPart(partNum)
   }
 }
 
