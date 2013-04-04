@@ -1,33 +1,37 @@
 package org.sblaj.featurization
 
-import org.sblaj.SparseBinaryRowMatrix
+import org.sblaj.{LongSparseBinaryVector, SparseBinaryRowMatrix}
 import util.MurmurHash
+import org.sblaj.io.{DictionaryIO, VectorFileSet, VectorIO}
+import java.io.{PrintWriter, FileOutputStream, BufferedOutputStream, DataOutputStream}
 
 trait BinaryFeaturizer[T] {
   //TODO this interface needs some work
   // you should be able to featurize into a buffer, so you don't have to size your own arrays,
   // and it should take care of duplicates for you
-  def featurize(t: T, dictionary: DictionaryCache[String]) : (Long, Array[Long])
+  def featurize(t: T, dictionary: DictionaryCache[String]) : (Long, Array[Long], Int, Int)
 }
 
 trait MurmurFeaturizer[T] extends BinaryFeaturizer[T] {
 
-  def extractor : T => TraversableOnce[String]
+  val buffer = new Array[Long](100000)
+
+  def extractor(t: T): Set[String]
 
   def getId(t:T): Long
 
   def featurize(t : T, dictionary: DictionaryCache[String]) = {
     val id = getId(t)
     val featureNames = extractor(t)
-    val features = new Array[Long](featureNames.size)
     var idx = 0
     featureNames.foreach{ f =>
       val code = Murmur64.hash64(f)
-      features(idx) = code
+      buffer(idx) = code
       dictionary.addMapping(f, code)
       idx += 1
     }
-    (id, features.sorted)
+    java.util.Arrays.sort(buffer, 0, idx)
+    (id, buffer, 0, idx)
   }
 }
 
@@ -41,11 +45,13 @@ object FeaturizerHelper {
 
   def applyFeaturizer[T](t: T, featurizer: BinaryFeaturizer[T],
                        dictionary: DictionaryCache[String], matrixCounts: RowMatrixCounts) = {
-    val (id, cols) = featurizer.featurize(t, dictionary)
-    matrixCounts += cols
-    LongRowSparseBinaryVector(id, cols)
+    val (id, cols, startIdx, endIdx) = featurizer.featurize(t, dictionary)
+    val n = endIdx - startIdx
+    val theCols = new Array[Long](n)
+    System.arraycopy(cols, startIdx, theCols, 0, n)
+    matrixCounts += (theCols, 0, n)
+    LongRowSparseBinaryVector(id, theCols, 0, n)
   }
-
 
   def mapFeaturize[T](ts: TraversableOnce[T], featurizer: BinaryFeaturizer[T]) = {
     val matrixCounts = new RowMatrixCounts()
@@ -59,14 +65,35 @@ object FeaturizerHelper {
     }
     LongRowMatrix(matrixCounts, matrix, dictionary)
   }
+
+  def featurizeToFiles[T](ts: Iterator[T], featurizer: BinaryFeaturizer[T], files: VectorFileSet) = {
+    val matrixCounts = new RowMatrixCounts()
+    val dictionary = new HashMapDictionaryCache[String]()
+    val out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.vectorFile)))
+    var idx = 0
+    ts.foreach{ t =>
+      val vector = applyFeaturizer(t, featurizer, dictionary, matrixCounts)
+      val v = new LongSparseBinaryVector(vector.colIds, 0, vector.colIds.length)
+      VectorIO.append(v, out)
+      idx += 1
+    }
+    out.close()
+    DictionaryIO.writeDictionary(dictionary, files.dictionaryFile)
+
+    val dimsOut = new PrintWriter(files.dimensionFile)
+    dimsOut.println(matrixCounts.nRows)
+    dimsOut.println(matrixCounts.colIds.size())
+    dimsOut.println(matrixCounts.nnz)
+    dimsOut.close()
+  }
 }
 
 
 class RowMatrixCounts(var nRows: Long = 0, var nnz: Long = 0, val colIds: java.util.HashSet[Long] = new java.util.HashSet[Long]())
   extends Serializable {
-  def += (cols: Array[Long]) {
-    cols.foreach {
-      colIds.add(_)
+  def += (cols: Array[Long], startIdx: Int, endIdx: Int) {
+    (startIdx until endIdx).foreach{idx =>
+      colIds.add(cols(idx))
     }
     nRows += 1
     nnz += cols.length
@@ -77,10 +104,10 @@ class RowMatrixCounts(var nRows: Long = 0, var nnz: Long = 0, val colIds: java.u
   }
 }
 
-case class LongRowSparseBinaryVector(val id: Long, val colIds: Array[Long]) {
+case class LongRowSparseBinaryVector(val id: Long, val colIds: Array[Long], val startIdx: Int, val endIdx: Int) {
   def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
-    var idx = 0
-    while (idx < colIds.length) {
+    var idx = startIdx
+    while (idx < endIdx) {
       into(pos + idx) = enumeration.getEnumeratedId(colIds(idx)).get
       idx += 1
     }

@@ -33,7 +33,7 @@ class BinaryFeaturizerTest extends FunSuite with ShouldMatchers {
     }
     val featurizer = new MurmurFeaturizer[List[String]] {
       def getId(t: List[String]) = Murmur64.hash64(t.head)
-      def extractor = identity
+      def extractor(l: List[String]) = l.toSet
     }
 
     val featurized = FeaturizerHelper.mapFeaturize(rawData, featurizer)
