@@ -1,7 +1,7 @@
 package org.sblaj.featurization
 
 import collection._
-import it.unimi.dsi.fastutil.objects.Object2LongArrayMap
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 
 /**
  *
@@ -21,7 +21,7 @@ trait FeatureEnumeration {
 }
 
 class HashMapDictionaryCache[G] extends DictionaryCache[G] {
-  private val map = new Object2LongArrayMap[G]()
+  private val map = new Object2LongOpenHashMap[G]()
   def addMapping(name: G, code: Long) {
     map.put(name, code)
   }
