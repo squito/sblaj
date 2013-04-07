@@ -1,6 +1,6 @@
 package org.sblaj.featurization
 
-import org.sblaj.{LongSparseBinaryVector, SparseBinaryRowMatrix}
+import org.sblaj.{LongSparseBinaryVectorWithRowId, LongSparseBinaryVector, SparseBinaryRowMatrix}
 import util.MurmurHash
 import org.sblaj.io.{DictionaryIO, VectorFileSet, VectorIO}
 import java.io._
@@ -101,7 +101,7 @@ object FeaturizerHelper {
         openPart(partNum)
       }
       val vector = applyFeaturizer(t, featurizer, dictionary, matrixCounts)
-      val v = new LongSparseBinaryVector(vector.colIds, 0, vector.colIds.length)
+      val v = new LongSparseBinaryVector(vector.colIds, vector.startIdx, vector.endIdx)
       VectorIO.append(v, out)
       idx += 1
     }
@@ -137,7 +137,7 @@ case class LongRowSparseBinaryVector(val id: Long, val colIds: Array[Long], val 
   }
 }
 
-case class LongRowMatrix(val dims: RowMatrixCounts, val matrix: Traversable[LongRowSparseBinaryVector],
+case class LongRowMatrix(val dims: RowMatrixCountBuilder, val matrix: Traversable[LongSparseBinaryVectorWithRowId],
                             val dictionary: DictionaryCache[String]) {
 
   def toSparseBinaryRowMatrix() = {

@@ -20,9 +20,16 @@ class VectorFileSet(val dir: String) {
     }
   }
 
-  def getMergedDictionary: Option[String] = {
-    val p = dir + "/mergedDictionary.txt"
+  def getMergedDictionaryFile: String = dir + "/mergedDictionary.txt"
+
+  def getMergedDictionaryOption: Option[String] = {
+    val p = getMergedDictionaryFile
     if (new File(p).exists()) Some(p) else None
+  }
+
+  def numParts: Int = new java.io.File(dir + "/vectors.bin.parts/").list().length
+  def oneFileSetItr: Iterator[OneVectorFileSet] = {
+    (0 until numParts).toIterator.map{getOneFileSet}
   }
 }
 

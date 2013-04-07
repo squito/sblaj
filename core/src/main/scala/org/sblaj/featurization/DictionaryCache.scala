@@ -60,7 +60,8 @@ class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Seri
   override def getLongId(code: Int) = ids(code)
 
   override def subset(ids: Array[Int]) = {
-    //TODO
-    null
+    throw new UnsupportedOperationException()
   }
+
+  def size = ids.size
 }

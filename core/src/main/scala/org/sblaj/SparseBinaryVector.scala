@@ -1,5 +1,6 @@
 package org.sblaj
 
+import featurization.FeatureEnumeration
 import java.util
 
 /**
@@ -156,7 +157,16 @@ extends SparseBinaryVector with Serializable {
 
 //TODO figure out to get rid of the Int / Long types, and use @specialized.
 // however, not all of the methods make sense w/ Long col ids (eg., dot(Array[Float]), so probably need another base type
-class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int) extends Serializable
+class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int) extends Serializable {
+  def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
+    var idx = startIdx
+    while (idx < endIdx) {
+      into(pos + idx) = enumeration.getEnumeratedId(colIds(idx)).get
+      idx += 1
+    }
+    pos + idx
+  }
+}
 
 class LongSparseBinaryVectorWithRowId(val rowId: Long, override val colIds: Array[Long],override val startIdx: Int,
                                       override val endIdx: Int)
