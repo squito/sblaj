@@ -45,20 +45,20 @@ trait MurmurFeaturizer[T] extends BinaryFeaturizer[T] {
 object FeaturizerHelper {
 
   def applyFeaturizer[T](t: T, featurizer: BinaryFeaturizer[T],
-                       dictionary: DictionaryCache[String], matrixCounts: RowMatrixCounts) = {
+                       dictionary: DictionaryCache[String], matrixCounts: RowMatrixCountBuilder) = {
     val (id, cols, startIdx, endIdx) = featurizer.featurize(t, dictionary)
     val n = endIdx - startIdx
     val theCols = new Array[Long](n)
     System.arraycopy(cols, startIdx, theCols, 0, n)
     matrixCounts += (theCols, 0, n)
-    LongRowSparseBinaryVector(id, theCols, 0, n)
+    new LongSparseBinaryVectorWithRowId(id, theCols, 0, n)
   }
 
   def mapFeaturize[T](ts: TraversableOnce[T], featurizer: BinaryFeaturizer[T]) = {
-    val matrixCounts = new RowMatrixCounts()
+    val matrixCounts = new RowMatrixCountBuilder()
     val dictionary = new HashMapDictionaryCache[String]()
     //Q: Is there any way to do this w/ map? to force it to map from TraversableOnce to Traversable?
-    val matrix = new Array[LongRowSparseBinaryVector](ts.size)
+    val matrix = new Array[LongSparseBinaryVectorWithRowId](ts.size)
     var idx = 0
     ts.foreach{ t =>
       matrix(idx) = applyFeaturizer(t, featurizer, dictionary, matrixCounts)
@@ -69,12 +69,12 @@ object FeaturizerHelper {
 
   def featurizeToFiles[T](ts: Iterator[T], featurizer: BinaryFeaturizer[T], files: VectorFileSet, maxPartSize: Int) = {
     files.mkdirs()
-    var matrixCounts : RowMatrixCounts = null
+    var matrixCounts : RowMatrixCountBuilder = null
     var dictionary: HashMapDictionaryCache[String] = null
     var out : DataOutputStream = null
     def openPart(partNum: Int) = {
       println("beginning part " + partNum)
-      matrixCounts = new RowMatrixCounts()
+      matrixCounts = new RowMatrixCountBuilder()
       dictionary = new HashMapDictionaryCache[String]()
       out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.getOneFileSet(partNum).vectorFile)))
     }
@@ -110,7 +110,7 @@ object FeaturizerHelper {
 }
 
 
-class RowMatrixCounts(var nRows: Long = 0, var nnz: Long = 0, val colIds: java.util.HashSet[Long] = new java.util.HashSet[Long]())
+class RowMatrixCountBuilder(var nRows: Long = 0, var nnz: Long = 0, val colIds: java.util.HashSet[Long] = new java.util.HashSet[Long]())
   extends Serializable {
   def += (cols: Array[Long], startIdx: Int, endIdx: Int) {
     (startIdx until endIdx).foreach{idx =>
@@ -124,6 +124,7 @@ class RowMatrixCounts(var nRows: Long = 0, var nnz: Long = 0, val colIds: java.u
     "(" + nRows + "," + colIds.size() + "," + nnz + ")"
   }
 }
+case class RowMatrixCounts(val nRows: Long, val nCols: Long, val nnz: Long)
 
 case class LongRowSparseBinaryVector(val id: Long, val colIds: Array[Long], val startIdx: Int, val endIdx: Int) {
   def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
