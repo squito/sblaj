@@ -33,7 +33,8 @@ object SblajBuild extends Build {
     libraryDependencies ++= Seq(
       "org.eclipse.jetty" % "jetty-server" % "7.5.3.v20111011",
       "org.scalatest" %% "scalatest" % "1.6.1" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.9" % "test"
+      "org.scalacheck" %% "scalacheck" % "1.9" % "test",
+      "it.unimi.dsi" % "fastutil" % "6.4.4"  //better collections. its a big external dependency, but i think its worth it
     )
   )
 
