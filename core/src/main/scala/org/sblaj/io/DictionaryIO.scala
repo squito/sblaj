@@ -21,14 +21,22 @@ object DictionaryIO {
     mergeInto
   }
 
+  def buildMergedDictionary(fileSet:VectorFileSet): HashMapDictionaryCache[String] = {
+    val numParts = fileSet.numParts
+    val merged = new HashMapDictionaryCache[String]()
+    (0 until numParts).foreach { partNum =>
+      val f = fileSet.getOneFileSet(partNum).dictionaryFile
+      println("merging: " + f)
+      readOneDictionary(f, merged)
+      println("merged dictionary size = " + merged.size)
+    }
+    writeDictionary(merged, fileSet.getMergedDictionaryFile)
+    merged
+  }
+
   def readMergeDictionaries(fileSet: VectorFileSet): HashMapDictionaryCache[String] = {
     fileSet.getMergedDictionaryOption.map{readOneDictionary(_)}.getOrElse{
-      val numParts = fileSet.numParts
-      val merged = (0 until numParts).foldLeft(new HashMapDictionaryCache[String]()){ case(dictionary,partNum) =>
-        readOneDictionary(fileSet.getOneFileSet(partNum).dictionaryFile, dictionary)
-      }
-      writeDictionary(merged, fileSet.getMergedDictionaryFile)
-      merged
+      buildMergedDictionary(fileSet)
     }
   }
 

@@ -31,6 +31,8 @@ class VectorFileSet(val dir: String) {
   def oneFileSetItr: Iterator[OneVectorFileSet] = {
     (0 until numParts).toIterator.map{getOneFileSet}
   }
+
+  def getMergedDimFile: String = dir + "/mergedDims.txt"
 }
 
 case class OneVectorFileSet(

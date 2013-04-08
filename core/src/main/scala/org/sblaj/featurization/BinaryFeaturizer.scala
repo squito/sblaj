@@ -69,12 +69,12 @@ object FeaturizerHelper {
 
   def featurizeToFiles[T](ts: Iterator[T], featurizer: BinaryFeaturizer[T], files: VectorFileSet, maxPartSize: Int) = {
     files.mkdirs()
-    var matrixCounts : RowMatrixCountBuilder = null
+    var countsBuilder : RowMatrixCountBuilder = null
     var dictionary: HashMapDictionaryCache[String] = null
     var out : DataOutputStream = null
     def openPart(partNum: Int) = {
       println("beginning part " + partNum)
-      matrixCounts = new RowMatrixCountBuilder()
+      countsBuilder = new RowMatrixCountBuilder()
       dictionary = new HashMapDictionaryCache[String]()
       out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.getOneFileSet(partNum).vectorFile)))
     }
@@ -83,12 +83,7 @@ object FeaturizerHelper {
       println("finishing part " + partNum)
       out.close()
       DictionaryIO.writeDictionary(dictionary, files.getOneFileSet(partNum).dictionaryFile)
-
-      val dimsOut = new PrintWriter(files.getOneFileSet(partNum).dimensionFile)
-      dimsOut.println(matrixCounts.nRows)
-      dimsOut.println(matrixCounts.colIds.size())
-      dimsOut.println(matrixCounts.nnz)
-      dimsOut.close()
+      VectorIO.writeMatrixCounts(countsBuilder.toRowMatrixCounts, files.getOneFileSet(partNum).dimensionFile)
     }
     var idx = 0
     var partNum = 0
@@ -100,7 +95,7 @@ object FeaturizerHelper {
         idx = 0
         openPart(partNum)
       }
-      val vector = applyFeaturizer(t, featurizer, dictionary, matrixCounts)
+      val vector = applyFeaturizer(t, featurizer, dictionary, countsBuilder)
       val v = new LongSparseBinaryVector(vector.colIds, vector.startIdx, vector.endIdx)
       VectorIO.append(v, out)
       idx += 1
@@ -123,6 +118,8 @@ class RowMatrixCountBuilder(var nRows: Long = 0, var nnz: Long = 0, val colIds: 
   override def toString() = {
     "(" + nRows + "," + colIds.size() + "," + nnz + ")"
   }
+
+  def toRowMatrixCounts: RowMatrixCounts = RowMatrixCounts(nRows, colIds.size(), nnz)
 }
 case class RowMatrixCounts(val nRows: Long, val nCols: Long, val nnz: Long)
 

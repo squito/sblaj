@@ -161,7 +161,7 @@ class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val end
   def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
     var idx = startIdx
     while (idx < endIdx) {
-      into(pos + idx) = enumeration.getEnumeratedId(colIds(idx)).get
+      into(pos + idx) = enumeration.getEnumeratedId(colIds(idx)).getOrElse(throw new RuntimeException("no mapping for id " + colIds(idx)))
       idx += 1
     }
     pos + idx
