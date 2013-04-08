@@ -104,6 +104,7 @@ object VectorIO {
       rowIdx = newIdxs._1
       colIdx = newIdxs._2
     }
+    mat.setSize(rowIdx, colIdx)
     mat
   }
 
@@ -114,7 +115,7 @@ object VectorIO {
       into(p) = in.readInt()
       p += 1
     }
-    pos
+    p
   }
 
   def readSparseBinaryVectors(
@@ -130,7 +131,7 @@ object VectorIO {
     val in = new DataInputStream(new FastBufferedInputStream(new FileInputStream(onePart.vectorFile)))
     while (rowIdx < counts.nRows + startRowIdx) {
       rowStarts(rowIdx) = colIdx
-      colIdx += readOneSparseBinaryVector(in, cols, colIdx)
+      colIdx = readOneSparseBinaryVector(in, cols, colIdx)
       rowIdx += 1
     }
     in.close()
