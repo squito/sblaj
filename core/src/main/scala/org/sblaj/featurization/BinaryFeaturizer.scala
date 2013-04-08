@@ -5,6 +5,7 @@ import util.MurmurHash
 import org.sblaj.io.{DictionaryIO, VectorFileSet, VectorIO}
 import java.io._
 import scala.Serializable
+import it.unimi.dsi.fastutil.io.FastBufferedOutputStream
 
 trait BinaryFeaturizer[T] {
   //TODO this interface needs some work
@@ -76,7 +77,7 @@ object FeaturizerHelper {
       println("beginning part " + partNum)
       countsBuilder = new RowMatrixCountBuilder()
       dictionary = new HashMapDictionaryCache[String]()
-      out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(files.getOneFileSet(partNum).vectorFile)))
+      out = new DataOutputStream(new FastBufferedOutputStream(new FileOutputStream(files.getOneFileSet(partNum).vectorFile)))
     }
 
     def finishPart(partNum: Int) = {

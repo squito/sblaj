@@ -1,10 +1,10 @@
 package org.sblaj.io
 
-import org.sblaj.{SparseBinaryVector, SparseBinaryRowMatrix, BaseSparseBinaryVector, LongSparseBinaryVector}
+import org.sblaj.{SparseBinaryRowMatrix, BaseSparseBinaryVector, LongSparseBinaryVector}
 import java.io._
 import io.Source
 import org.sblaj.featurization.{RowMatrixCounts}
-import it.unimi.dsi.fastutil.io.BinIO
+import it.unimi.dsi.fastutil.io.{FastBufferedOutputStream, FastBufferedInputStream}
 
 /**
  *
@@ -27,7 +27,7 @@ object VectorIO {
    */
   def longBinaryRowIterator(onePart: OneVectorFileSet): Iterator[LongSparseBinaryVector] = {
     val matrixCounts = loadMatrixCounts(onePart)
-    val in = new DataInputStream(new BufferedInputStream(new FileInputStream(onePart.vectorFile)))
+    val in = new DataInputStream(new FastBufferedInputStream(new FileInputStream(onePart.vectorFile)))
     new LongSparseRowVectorDataInputIterator(in, matrixCounts.nRows.toInt)
   }
 
@@ -56,7 +56,7 @@ object VectorIO {
       val f = new java.io.File(intVectors.getOneFileSet(partNum).vectorFile)
       f.getParentFile.mkdirs()
       println("beginning to enumerate into " + f)
-      val out = new DataOutputStream(new FileOutputStream(f))
+      val out = new DataOutputStream(new FastBufferedOutputStream(new FileOutputStream(f)))
       val longs = longBinaryRowIterator(longVectors.getOneFileSet(partNum))
       var nnz = 0
       var nRows = 0
@@ -127,7 +127,7 @@ object VectorIO {
     val counts = loadMatrixCounts(onePart)
     var rowIdx = startRowIdx
     var colIdx = startColIdx
-    val in = new DataInputStream(new FileInputStream(onePart.vectorFile))
+    val in = new DataInputStream(new FastBufferedInputStream(new FileInputStream(onePart.vectorFile)))
     while (rowIdx < counts.nRows + startRowIdx) {
       rowStarts(rowIdx) = colIdx
       colIdx += readOneSparseBinaryVector(in, cols, colIdx)
