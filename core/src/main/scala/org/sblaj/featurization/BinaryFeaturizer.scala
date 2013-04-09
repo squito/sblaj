@@ -6,6 +6,7 @@ import org.sblaj.io.{DictionaryIO, VectorFileSet, VectorIO}
 import java.io._
 import scala.Serializable
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream
+import collection._
 
 trait BinaryFeaturizer[T] {
   //TODO this interface needs some work
