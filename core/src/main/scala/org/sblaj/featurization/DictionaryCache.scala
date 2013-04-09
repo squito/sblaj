@@ -4,6 +4,7 @@ import collection._
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 import java.io.PrintWriter
 import io.Source
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 
 /**
  *
@@ -46,6 +47,12 @@ class HashMapDictionaryCache[G] extends DictionaryCache[G] {
       val n = itr.next()
       f((n.getKey, n.getLongValue))
     }
+  }
+
+  def reverseMapping: Long2ObjectOpenHashMap[G] = {
+    val m = new Long2ObjectOpenHashMap[G](map.size())
+    foreach{case(key,code) => m.put(code, key)}
+    m
   }
 }
 

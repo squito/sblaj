@@ -39,6 +39,17 @@ object DictionaryIO {
     }
   }
 
+  def readRevDictionary(fileSet: VectorFileSet): Long2ObjectOpenHashMap[String] = {
+    if (fileSet.getMergedDictionaryOption.isEmpty) buildMergedDictionary(fileSet)
+    val m = new Long2ObjectOpenHashMap[String]()
+    Source.fromFile(fileSet.getMergedDictionaryOption.get).getLines().zipWithIndex.foreach{case(line,idx) =>
+      if (idx % 1e6.toInt == 0) info("reading line " + idx)
+      val p = line.lastIndexOf("\t")
+      m.put(line.substring(p + 1, line.length).toLong, line.substring(0,p))
+    }
+    m
+  }
+
   def idIterator(file: String) : LongIterator = {
     val lines = Source.fromFile(file).getLines()
     new LongIterator {
