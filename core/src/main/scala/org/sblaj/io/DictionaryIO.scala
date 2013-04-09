@@ -3,7 +3,7 @@ package org.sblaj.io
 import org.sblaj.featurization.{DictionaryCache, SortEnumeration, FeatureEnumeration, HashMapDictionaryCache}
 import java.io.PrintWriter
 import io.Source
-import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, LongIterator, LongAVLTreeSet}
+import it.unimi.dsi.fastutil.longs._
 import org.sblaj.util.Logging
 
 object DictionaryIO extends Logging {
@@ -14,12 +14,18 @@ object DictionaryIO extends Logging {
     out.close()
   }
 
+  def entryIterator(file:String):Iterator[(String,Long)] = {
+    Source.fromFile(file).getLines().map{ line=>
+      val p = line.lastIndexOf("\t")
+      (line.substring(0,p), line.substring(p+1, line.length).toLong)
+    }
+  }
+
   def readOneDictionary(file: String, mergeInto: HashMapDictionaryCache[String] = new HashMapDictionaryCache[String]): HashMapDictionaryCache[String] = {
-    Source.fromFile(file).getLines().zipWithIndex.foreach{ case(line,idx) =>
+    entryIterator(file).zipWithIndex.foreach{ case((key,code),idx) =>
       if (idx % 1e6.toInt == 0)
         info("reading line " + idx)
-      val p = line.lastIndexOf("\t")
-      mergeInto.addMapping(line.substring(0, p), line.substring(p + 1, line.length).toLong)
+      mergeInto.addMapping(key,code)
     }
     mergeInto
   }
@@ -111,5 +117,19 @@ object DictionaryIO extends Logging {
 
   def idEnumeration(fileSet: VectorFileSet): FeatureEnumeration = {
     new SortEnumeration(idSet(fileSet).toLongArray)
+  }
+
+  /**
+   * build a set of ids that match the given predicate.  Generally, the idea
+   * behind this is that you are going to keep a pretty small set of entries
+   */
+  def matchingIds(fileSet: VectorFileSet)(predicate: ((String,Long)) => Boolean): LongSet = {
+    matchingIds(fileSet, new LongOpenHashSet())(predicate)
+  }
+  def matchingIds(fileSet: VectorFileSet, idSet: LongSet)(predicate: ((String,Long)) => Boolean): LongSet = {
+    fileSet.foreach{part =>
+      entryIterator(part.dictionaryFile).filter(predicate).foreach{case(_,code) => idSet.add(code)}
+    }
+    idSet
   }
 }
