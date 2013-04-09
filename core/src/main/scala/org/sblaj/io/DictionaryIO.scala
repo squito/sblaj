@@ -3,9 +3,10 @@ package org.sblaj.io
 import org.sblaj.featurization.{DictionaryCache, SortEnumeration, FeatureEnumeration, HashMapDictionaryCache}
 import java.io.PrintWriter
 import io.Source
-import it.unimi.dsi.fastutil.longs.{LongIterator, LongAVLTreeSet}
+import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, LongIterator, LongAVLTreeSet}
+import org.sblaj.util.Logging
 
-object DictionaryIO {
+object DictionaryIO extends Logging {
 
   def writeDictionary(dictionary: DictionaryCache[String], file: String) {
     val out = new PrintWriter(file)
@@ -14,7 +15,9 @@ object DictionaryIO {
   }
 
   def readOneDictionary(file: String, mergeInto: HashMapDictionaryCache[String] = new HashMapDictionaryCache[String]): HashMapDictionaryCache[String] = {
-    Source.fromFile(file).getLines().foreach{ line =>
+    Source.fromFile(file).getLines().zipWithIndex.foreach{ case(line,idx) =>
+      if (idx % 1e6.toInt == 0)
+        info("reading line " + idx)
       val p = line.lastIndexOf("\t")
       mergeInto.addMapping(line.substring(0, p), line.substring(p + 1, line.length).toLong)
     }

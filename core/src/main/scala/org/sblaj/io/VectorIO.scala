@@ -3,7 +3,7 @@ package org.sblaj.io
 import org.sblaj.{SparseBinaryRowMatrix, BaseSparseBinaryVector, LongSparseBinaryVector}
 import java.io._
 import io.Source
-import org.sblaj.featurization.{ArrayCodeLookup, RowMatrixCounts}
+import org.sblaj.featurization.{FeatureEnumeration, ArrayCodeLookup, RowMatrixCounts}
 import it.unimi.dsi.fastutil.io.{FastBufferedOutputStream, FastBufferedInputStream}
 import org.sblaj.util.Logging
 
@@ -79,14 +79,21 @@ object VectorIO extends Logging {
     }
     val totalCounts = partCounts.reduce{(a,b) => RowMatrixCounts(a.nRows + b.nRows, a.nCols, a.nnz + b.nnz)}
     writeMatrixCounts(totalCounts, intVectors.getMergedDimFile)
+  }
 
+  def remapIntDictionary(longVectors: VectorFileSet, intVectors: VectorFileSet, idEnumOpt: Option[FeatureEnumeration]) {
+    val idEnum = idEnumOpt.getOrElse{
+      info("loading id enumeration")
+      DictionaryIO.idEnumeration(longVectors)
+    }
     //remap dictionary
-    info("loading merged dictionary")
-    val longDictionary = DictionaryIO.readMergeDictionaries(longVectors)
-    info("remapping dictionary")
-    val arr = new Array[String](longDictionary.size)
-    longDictionary.foreach{case (name, longCode) =>
-      val intCode = idEnum.getEnumeratedId(longCode).get
+    info("loading reverse dictionary")
+    val revDictionary = DictionaryIO.readRevDictionary(longVectors)
+    info("making int lookup")
+    val arr = new Array[String](idEnum.size)
+    (0 until idEnum.size).foreach{intCode =>
+      val longCode = idEnum.getLongId(intCode)
+      val name = revDictionary.get(longCode)
       arr(intCode) = name
     }
     //UGLY!!!! same file holds different types of data

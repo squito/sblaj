@@ -41,7 +41,7 @@ class VectorFileSet(val dir: String) extends Iterable[OneVectorFileSet] {
     new SampledVectorFileSet(dir, (0 until nParts).toSet)
   }
 
-  def sampleFirstPartsIntVectors(nParts: Int, maxBytes: Long): VectorFileSet = {
+  def sampleSizeLimitIntVectors(maxBytes: Long): VectorFileSet = {
     var bytesSoFar = 0l
     val parts = takeWhile{part =>
       val partCounts = VectorIO.loadMatrixCounts(part)

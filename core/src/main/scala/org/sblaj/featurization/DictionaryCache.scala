@@ -82,7 +82,7 @@ class ArrayCodeLookup[G](val arr: Array[G]) extends CodeLookup[G] {
   def apply(code: Long) = arr(code.toInt)
 
   def saveAsText(out: PrintWriter) {
-    (0 until arr.size).foreach{idx => println(idx + "\t" + arr(idx))}
+    (0 until arr.size).foreach{idx => out.println(idx + "\t" + arr(idx))}
   }
 }
 
