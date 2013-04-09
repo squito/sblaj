@@ -16,7 +16,7 @@ object VectorIO {
   }
 
   def longBinaryRowIterator(fileSet: VectorFileSet): Iterator[LongSparseBinaryVector] = {
-    fileSet.oneFileSetItr.map{
+    fileSet.map{
       onePart => longBinaryRowIterator(onePart)
     }.reduce{_ ++ _}
   }
@@ -51,13 +51,14 @@ object VectorIO {
 
   def convertToIntVectors(longVectors: VectorFileSet, intVectors: VectorFileSet) {
     val idEnum = DictionaryIO.idEnumeration(longVectors)
-    val partCounts = (0 until longVectors.numParts).map{partNum =>
+    val partCounts = longVectors.toSeq.map{part =>
+      val partNum = part.partNum
       val buffer = new Array[Int](idEnum.size)  //max possible, probably much bigger than needed, but should be OK
       val f = new java.io.File(intVectors.getOneFileSet(partNum).vectorFile)
       f.getParentFile.mkdirs()
       println("beginning to enumerate into " + f)
       val out = new DataOutputStream(new FastBufferedOutputStream(new FileOutputStream(f)))
-      val longs = longBinaryRowIterator(longVectors.getOneFileSet(partNum))
+      val longs = longBinaryRowIterator(part)
       var nnz = 0
       var nRows = 0
       longs.foreach{lv =>
@@ -85,7 +86,7 @@ object VectorIO {
 
 
   def loadMatrix(intVectors: VectorFileSet): SparseBinaryRowMatrix = {
-    val totalCounts = loadMatrixCounts(Source.fromFile(intVectors.getMergedDimFile))
+    val totalCounts = intVectors.loadCounts
     val mat = new SparseBinaryRowMatrix(
       nMaxRows =  totalCounts.nRows.toInt,
       nColumns = totalCounts.nCols.toInt,
@@ -93,9 +94,9 @@ object VectorIO {
     )
     var colIdx = 0
     var rowIdx = 0
-    (0 until intVectors.numParts).foreach{part =>
+    intVectors.foreach{part =>
       val newIdxs = readSparseBinaryVectors(
-        intVectors.getOneFileSet(part),
+        part,
         cols = mat.colIds,
         startColIdx = colIdx,
         rowStarts = mat.rowStartIdx,

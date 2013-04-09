@@ -22,10 +22,9 @@ object DictionaryIO {
   }
 
   def buildMergedDictionary(fileSet:VectorFileSet): HashMapDictionaryCache[String] = {
-    val numParts = fileSet.numParts
     val merged = new HashMapDictionaryCache[String]()
-    (0 until numParts).foreach { partNum =>
-      val f = fileSet.getOneFileSet(partNum).dictionaryFile
+    fileSet.foreach { onePart =>
+      val f = onePart.dictionaryFile
       println("merging: " + f)
       readOneDictionary(f, merged)
       println("merged dictionary size = " + merged.size)
@@ -61,8 +60,7 @@ object DictionaryIO {
 
   def idIterator(fileSet: VectorFileSet): LongIterator = {
     val files = fileSet.getMergedDictionaryOption.map{Seq(_)}.getOrElse {
-      val numParts = fileSet.numParts
-      (0 until numParts).map{fileSet.getOneFileSet(_).dictionaryFile}
+      fileSet.iterator.map{_.dictionaryFile}.toSeq
     }
     val subItrs = files.map{idIterator(_)}
     new LongIterator {
