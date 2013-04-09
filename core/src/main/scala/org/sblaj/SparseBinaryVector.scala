@@ -1,7 +1,7 @@
 package org.sblaj
 
 import featurization.FeatureEnumeration
-import java.util
+import java.util.Arrays
 
 /**
  *
@@ -112,7 +112,7 @@ extends SparseBinaryVector with Serializable {
 
   def nnz = theEndIdx - theStartIdx
   def get(col : Int) : Int = {
-    if (util.Arrays.binarySearch(theColIds, theStartIdx, theEndIdx, col) < 0)
+    if (Arrays.binarySearch(theColIds, theStartIdx, theEndIdx, col) < 0)
       return 0
     else
       return 1
@@ -149,7 +149,7 @@ extends SparseBinaryVector with Serializable {
    */
   def subset(colIds: Array[Int]) : BaseSparseBinaryVector = {
     //slow, but works
-    val subsetColIds = theColIds.filter{util.Arrays.binarySearch(colIds, _) >= 0}
+    val subsetColIds = theColIds.filter{Arrays.binarySearch(colIds, _) >= 0}
     new BaseSparseBinaryVector(subsetColIds, 0, subsetColIds.length)
   }
 }
