@@ -2,6 +2,8 @@ package org.sblaj.featurization
 
 import collection._
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
+import java.io.PrintWriter
+import io.Source
 
 /**
  *
@@ -9,7 +11,6 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 
 trait DictionaryCache[G] extends Traversable[(G,Long)] {
   def addMapping(name: G, code: Long)
-
   def getEnumeration() : FeatureEnumeration
 }
 
@@ -48,7 +49,7 @@ class HashMapDictionaryCache[G] extends DictionaryCache[G] {
   }
 }
 
-class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Serializable {
+class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Serializable{
   override def getEnumeratedId(code:Long) = {
     val idx = java.util.Arrays.binarySearch(ids, code)
     if (idx >= 0)
@@ -64,4 +65,25 @@ class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Seri
   }
 
   def size = ids.size
+}
+
+trait CodeLookup[G] {
+  def apply(code: Long): G
+}
+
+class ArrayCodeLookup[G](val arr: Array[G]) extends CodeLookup[G] {
+  def apply(code: Long) = arr(code.toInt)
+
+  def saveAsText(out: PrintWriter) {
+    (0 until arr.size).foreach{idx => println(idx + "\t" + arr(idx))}
+  }
+}
+
+object ArrayCodeLookup {
+  def loadFromText(size: Int, in: Source): ArrayCodeLookup[String] = {
+    val arr = new Array[String](size)
+    val lines = in.getLines()
+    (0 until size).foreach{idx => arr(idx) = lines.next()}
+    new ArrayCodeLookup[String](arr)
+  }
 }

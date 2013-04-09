@@ -3,13 +3,14 @@ package org.sblaj.io
 import org.sblaj.{SparseBinaryRowMatrix, BaseSparseBinaryVector, LongSparseBinaryVector}
 import java.io._
 import io.Source
-import org.sblaj.featurization.{RowMatrixCounts}
+import org.sblaj.featurization.{ArrayCodeLookup, RowMatrixCounts}
 import it.unimi.dsi.fastutil.io.{FastBufferedOutputStream, FastBufferedInputStream}
+import org.sblaj.util.Logging
 
 /**
  *
  */
-object VectorIO {
+object VectorIO extends Logging {
   def append(v: LongSparseBinaryVector, out: DataOutputStream) {
     out.writeInt(v.endIdx - v.startIdx)
     (v.startIdx until v.endIdx).foreach{idx => out.writeLong(v.colIds(idx))}
@@ -50,13 +51,14 @@ object VectorIO {
 
 
   def convertToIntVectors(longVectors: VectorFileSet, intVectors: VectorFileSet) {
+    info("loading id enumeration")
     val idEnum = DictionaryIO.idEnumeration(longVectors)
     val partCounts = longVectors.toSeq.map{part =>
       val partNum = part.partNum
       val buffer = new Array[Int](idEnum.size)  //max possible, probably much bigger than needed, but should be OK
       val f = new java.io.File(intVectors.getOneFileSet(partNum).vectorFile)
       f.getParentFile.mkdirs()
-      println("beginning to enumerate into " + f)
+      info("beginning to enumerate into " + f)
       val out = new DataOutputStream(new FastBufferedOutputStream(new FileOutputStream(f)))
       val longs = longBinaryRowIterator(part)
       var nnz = 0
@@ -77,6 +79,20 @@ object VectorIO {
     }
     val totalCounts = partCounts.reduce{(a,b) => RowMatrixCounts(a.nRows + b.nRows, a.nCols, a.nnz + b.nnz)}
     writeMatrixCounts(totalCounts, intVectors.getMergedDimFile)
+
+    //remap dictionary
+    info("loading merged dictionary")
+    val longDictionary = DictionaryIO.readMergeDictionaries(longVectors)
+    info("remapping dictionary")
+    val arr = new Array[String](longDictionary.size)
+    longDictionary.foreach{case (name, longCode) =>
+      val intCode = idEnum.getEnumeratedId(longCode).get
+      arr(intCode) = name
+    }
+    //UGLY!!!! same file holds different types of data
+    val out = new PrintWriter(intVectors.getMergedDictionaryFile)
+    new ArrayCodeLookup(arr).saveAsText(out)
+    out.close()
   }
 
   def append(v: BaseSparseBinaryVector, out: DataOutputStream) {

@@ -1,13 +1,13 @@
 package org.sblaj.io
 
-import org.sblaj.featurization.{SortEnumeration, FeatureEnumeration, HashMapDictionaryCache}
+import org.sblaj.featurization.{DictionaryCache, SortEnumeration, FeatureEnumeration, HashMapDictionaryCache}
 import java.io.PrintWriter
 import io.Source
 import it.unimi.dsi.fastutil.longs.{LongIterator, LongAVLTreeSet}
 
 object DictionaryIO {
 
-  def writeDictionary(dictionary: HashMapDictionaryCache[String], file: String) {
+  def writeDictionary(dictionary: DictionaryCache[String], file: String) {
     val out = new PrintWriter(file)
     dictionary.foreach{case(key, code) => out.println(key + "\t" + code)}
     out.close()
