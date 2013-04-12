@@ -92,6 +92,7 @@ object VectorIO extends Logging {
     pred: ((String, Long)) => Boolean
   ) {
     //first, find columns that have meet minimum fraction
+    info("finding columns that pass filters")
     val longMat = new FileLongSparseBinaryRowMatrix(longVectors)
     val origDims = longMat.dims
     val colSums = longMat.getColSums
@@ -100,7 +101,7 @@ object VectorIO extends Logging {
       if (entry.getIntValue.toDouble / origDims.nRows > featureMinFrac)
         okCols.add(entry.getLongKey)
     }
-    info("%d columns (%2f %%) pass min frac".format(okCols.size(), okCols.size().toDouble / colSums.size()))
+    info("%d columns (%2f %%) pass min frac".format(okCols.size(), okCols.size().toDouble / colSums.size() * 100))
 
     // **ADD** columns that match the predicate
     DictionaryIO.matchingIds(longVectors, okCols)(pred)
