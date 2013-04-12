@@ -159,15 +159,17 @@ extends SparseBinaryVector with Serializable {
 // however, not all of the methods make sense w/ Long col ids (eg., dot(Array[Float]), so probably need another base type
 class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int) extends Serializable {
   def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
-    var idx = startIdx
-    while (idx < endIdx) {
-      enumeration.getEnumeratedId(colIds(idx)).foreach{intCode =>
-        into(pos + idx) = intCode
-        idx += 1
+    var sourceIdx = startIdx
+    var targetIdx = pos
+    while (sourceIdx < endIdx) {
+      enumeration.getEnumeratedId(colIds(sourceIdx)).foreach{intCode =>
+        into(targetIdx) = intCode
+        targetIdx += 1
       }
+      sourceIdx += 1
     }
-    Arrays.sort(into, pos, pos + idx)
-    pos + idx
+    Arrays.sort(into, pos, targetIdx)
+    targetIdx
   }
 }
 
