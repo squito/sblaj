@@ -90,7 +90,13 @@ object ArrayCodeLookup {
   def loadFromText(size: Int, in: Source): ArrayCodeLookup[String] = {
     val arr = new Array[String](size)
     val lines = in.getLines()
-    (0 until size).foreach{idx => arr(idx) = lines.next()}
+    (0 until size).foreach{idx =>
+      val l = lines.next()
+      val p = l.indexOf("\t")
+      val idx2 = l.substring(0,p).toInt
+      require(idx2 == idx)
+      arr(idx) = l.substring(p + 1, l.length)
+    }
     new ArrayCodeLookup[String](arr)
   }
 }
