@@ -82,4 +82,9 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     colSums
   }
 
+  override def toString() = {
+    //mostly needed b/c the REPL insists on calling toString when you create matrix
+    getClass.getSimpleName + " with nRows = " + nRows + ", nCols = " + nCols + ", nnz = " + nnz
+  }
+
 }
