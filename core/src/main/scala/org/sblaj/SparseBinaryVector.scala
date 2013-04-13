@@ -143,12 +143,12 @@ extends SparseBinaryVector with Serializable {
   /**
    * return a new vector which only contains the given columns.
    *
-   * @param colIds *sorted* array of columns to keep
+   * @param colsToKeep *sorted* array of columns to keep
    * @return
    */
-  def subset(colIds: Array[Int]) : BaseSparseBinaryVector = {
+  def subset(colsToKeep: Array[Int]) : BaseSparseBinaryVector = {
     //slow, but works
-    val subsetColIds = colIds.filter{Arrays.binarySearch(colIds, _) >= 0}
+    val subsetColIds = colsToKeep.filter{Arrays.binarySearch(colIds, startIdx, endIdx, _) >= 0}
     new BaseSparseBinaryVector(subsetColIds, 0, subsetColIds.length)
   }
 
