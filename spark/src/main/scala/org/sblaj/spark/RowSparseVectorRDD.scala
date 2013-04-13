@@ -86,8 +86,8 @@ class EnumeratedSparseVectorRDD[G](
     vectors.foreach {
       v =>
         matrix.rowStartIdx(rowIdx) = colIdx
-        System.arraycopy(v.theColIds, 0, matrix.colIds, colIdx, v.theColIds.length)
-        colIdx += v.theColIds.length
+        System.arraycopy(v.colIds, 0, matrix.colIds, colIdx, v.colIds.length)
+        colIdx += v.colIds.length
         rowIdx += 1
     }
     matrix.rowStartIdx(rowIdx) = colIdx
@@ -115,7 +115,7 @@ class EnumeratedSparseVectorRDD[G](
       val sub = itr.map{vector =>
         val newRow : BaseSparseBinaryVector = vector.subset(ids)
         // not the most efficient way to remap the ids, but it works for now
-        newRow.theColIds = newRow.theColIds.flatMap{oldId =>
+        newRow.colIds = newRow.colIds.flatMap{oldId =>
           val longId = bcOrigEnumeration.value.getLongId(oldId)
           bcSubsetEnumeration.value.getEnumeratedId(longId)
         }.sorted

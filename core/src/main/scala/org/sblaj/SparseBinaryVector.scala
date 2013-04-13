@@ -50,12 +50,8 @@ trait SparseBinaryVector extends Traversable[Int]{
   }
 }
 
-class BaseSparseBinaryVector(colIds: Array[Int], startIdx: Int, endIdx: Int)
+class BaseSparseBinaryVector(var colIds: Array[Int], var startIdx: Int, var endIdx: Int)
 extends SparseBinaryVector with Serializable {
-
-  var theColIds = colIds
-  var theStartIdx = startIdx
-  var theEndIdx = endIdx
 
   /**
    * reset this object to point to a different vector
@@ -68,25 +64,25 @@ extends SparseBinaryVector with Serializable {
    * @param endIdx
    */
   def reset(colIds: Array[Int], startIdx: Int, endIdx: Int) {
-    theColIds = colIds
-    theStartIdx = startIdx
-    theEndIdx = endIdx
+    this.colIds = colIds
+    this.startIdx = startIdx
+    this.endIdx = endIdx
   }
 
   def dot(x: Array[Float]) : Float = {
     var f : Float = 0
-    var idx = theStartIdx
-    while (idx < theEndIdx) {
-      f += x(theColIds(idx))
+    var idx = startIdx
+    while (idx < endIdx) {
+      f += x(colIds(idx))
       idx += 1
     }
     f
   }
 
   def mult(theta: Array[Array[Float]], into: Array[Float]) : Unit = {
-    var idx = theStartIdx
-    while (idx < theEndIdx) {
-      val colId = theColIds(idx)
+    var idx = startIdx
+    while (idx < endIdx) {
+      val colId = colIds(idx)
       val theta_c = theta(colId)
       var j = 0
       while (j < into.length) {
@@ -98,9 +94,9 @@ extends SparseBinaryVector with Serializable {
   }
 
   def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) {
-    var rowIdx = theStartIdx
-    while (rowIdx < theEndIdx) {
-      val row = theColIds(rowIdx)
+    var rowIdx = startIdx
+    while (rowIdx < endIdx) {
+      val row = colIds(rowIdx)
       var col = 0
       while (col < vals.length) {
         into(row)(col) += vals(col)
@@ -110,9 +106,9 @@ extends SparseBinaryVector with Serializable {
     }
   }
 
-  def nnz = theEndIdx - theStartIdx
+  def nnz = endIdx - startIdx
   def get(col : Int) : Int = {
-    if (Arrays.binarySearch(theColIds, theStartIdx, theEndIdx, col) < 0)
+    if (Arrays.binarySearch(colIds, startIdx, endIdx, col) < 0)
       return 0
     else
       return 1
@@ -121,21 +117,21 @@ extends SparseBinaryVector with Serializable {
   override def toString() = {
     val sb = new StringBuilder()
     sb.append("[")
-    var idx = theStartIdx
-    while (idx < theEndIdx - 1) {
+    var idx = startIdx
+    while (idx < endIdx - 1) {
       sb.append(colIds(idx))
       sb.append(",")
       idx += 1
     }
-    if (idx < theEndIdx)
+    if (idx < endIdx)
       sb.append(colIds(idx))
     sb.append("]")
     sb.toString()
   }
 
   def foreach[U](f:Int => U) {
-    var idx = theStartIdx
-    while (idx < theEndIdx) {
+    var idx = startIdx
+    while (idx < endIdx) {
       f(colIds(idx))
       idx += 1
     }
@@ -149,7 +145,7 @@ extends SparseBinaryVector with Serializable {
    */
   def subset(colIds: Array[Int]) : BaseSparseBinaryVector = {
     //slow, but works
-    val subsetColIds = theColIds.filter{Arrays.binarySearch(colIds, _) >= 0}
+    val subsetColIds = colIds.filter{Arrays.binarySearch(colIds, _) >= 0}
     new BaseSparseBinaryVector(subsetColIds, 0, subsetColIds.length)
   }
 }

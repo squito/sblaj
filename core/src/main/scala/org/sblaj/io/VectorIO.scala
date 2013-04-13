@@ -137,8 +137,8 @@ object VectorIO extends Logging {
   }
 
   def append(v: BaseSparseBinaryVector, out: DataOutputStream) {
-    out.writeInt(v.theEndIdx - v.theStartIdx)
-    (v.theStartIdx until v.theEndIdx).foreach{idx => out.writeInt(v.theColIds(idx))}
+    out.writeInt(v.endIdx - v.startIdx)
+    (v.startIdx until v.endIdx).foreach{idx => out.writeInt(v.colIds(idx))}
   }
 
 
