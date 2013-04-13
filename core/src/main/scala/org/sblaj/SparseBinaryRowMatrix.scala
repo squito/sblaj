@@ -167,4 +167,12 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     result
   }
 
+  def getRow(row: Int, into: BaseSparseBinaryVector) {
+    into.reset(colIds, rowStartIdx(row), rowStartIdx(row + 1))
+  }
+
+  def getRow(row: Int) = {
+    new BaseSparseBinaryVector(colids, rowStartIdx(row), rowStartIdx(row + 1))
+  }
+
 }
