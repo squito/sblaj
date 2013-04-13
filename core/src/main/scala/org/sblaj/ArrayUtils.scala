@@ -1,5 +1,7 @@
 package org.sblaj
 
+import collection._
+
 /**
  *
  */
@@ -120,6 +122,17 @@ object ArrayUtils {
     System.arraycopy(arr, startIdx, copy, 0, l)
     val sorted = copy.zipWithIndex.sortBy{- _._1}
     sorted.slice(0, k).map{_.swap}
+  }
+
+  def matrixAsMap[T](idRemap:Array[Int], matrix: Array[T]) : Map[Int,Map[Int, T]] = {
+    val n = idRemap.length
+    val map = mutable.HashMap[Int,mutable.HashMap[Int, T]]()
+    (0 until n).foreach{outerIdx =>
+      (0 until n).foreach{innerIdx =>
+        map.getOrElseUpdate(idRemap(outerIdx), mutable.HashMap[Int, T]()) += idRemap(innerIdx) -> matrix(outerIdx * n + innerIdx)
+      }
+    }
+    map
   }
 
 

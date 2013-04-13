@@ -1,5 +1,6 @@
 package org.sblaj
 
+import collection._
 /**
  *
  * foreach doesn't pass new object to each function
@@ -87,13 +88,25 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     getClass.getSimpleName + " with nRows = " + nRows + ", nCols = " + nCols + ", nnz = " + nnz
   }
 
-  def cooccurenceCounts(topN: Int): (Array[Int], Array[Int]) = {
+  def cooccurrenceCountsMap(topN: Int): (Array[Int], Map[Int,Map[Int, Int]]) = {
     val colSums = getColSums()
     val cols = colSums.zipWithIndex.sortBy{- _._1}.slice(0,topN).map{_._2}.sorted
-    (cols,cooccurenceCounts(cols))
+    (cols,cooccurrenceCountsMap(cols))
   }
 
-  def cooccurenceCounts(cols:Array[Int]): Array[Int] = {
+  def cooccurrenceCounts(topN: Int): (Array[Int], Array[Int]) = {
+    val colSums = getColSums()
+    val cols = colSums.zipWithIndex.sortBy{- _._1}.slice(0,topN).map{_._2}.sorted
+    (cols,cooccurrenceCounts(cols))
+  }
+
+  def cooccurrenceCountsMap(cols: Array[Int]): Map[Int,Map[Int, Int]] = {
+    val arr = cooccurrenceCounts(cols)
+    //map it back to original id space, so its easier to work with
+    ArrayUtils.matrixAsMap(cols, arr)
+  }
+
+  def cooccurrenceCounts(cols:Array[Int]): Array[Int] = {
     val n = cols.length
     val revMapping = new Array[Int](nCols)
     (0 until nCols).foreach{idx => revMapping(idx) = -1}
@@ -117,6 +130,8 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
             outerColIdx += 1
         }
         if (outerFound) {
+          val c1 = revMapping(colIds(outerIdx))
+          result(c1 * n + c1) += 1  //this feature cooccurs w/ itself
           //pair this column w/ all other columns in this vector
           var innerIdx = outerIdx + 1
           var innerColIdx = outerColIdx + 1
@@ -127,7 +142,6 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
               if (colIds(innerIdx) == cols(innerColIdx)) {
                 //finally, we've got two cols that co-occur in this row, both of which are in the target set
                 // colIds(outerIdx) and colids(innerIdx)
-                val c1 = revMapping(colIds(outerIdx))
                 val c2 = revMapping(colIds(innerIdx))
                 result(c1 * n + c2) += 1
                 innerIdx += 1
@@ -142,6 +156,12 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
           outerIdx += 1
           outerColIdx += 1
         }
+      }
+    }
+    //copy from upper diagonal into lower diagonal
+    (1 until n).foreach{ rowIdx =>
+      (rowIdx until n).foreach{colIdx =>
+        result(colIdx * n + rowIdx) = result(rowIdx * n + colIdx)
       }
     }
     result
