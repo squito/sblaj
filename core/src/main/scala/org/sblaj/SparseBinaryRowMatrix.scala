@@ -87,4 +87,64 @@ class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: 
     getClass.getSimpleName + " with nRows = " + nRows + ", nCols = " + nCols + ", nnz = " + nnz
   }
 
+  def cooccurenceCounts(topN: Int): (Array[Int], Array[Int]) = {
+    val colSums = getColSums()
+    val cols = colSums.zipWithIndex.sortBy{- _._1}.slice(0,topN).map{_._2}.sorted
+    (cols,cooccurenceCounts(cols))
+  }
+
+  def cooccurenceCounts(cols:Array[Int]): Array[Int] = {
+    val n = cols.length
+    val revMapping = new Array[Int](nCols)
+    (0 until nCols).foreach{idx => revMapping(idx) = -1}
+    (0 until cols.length).foreach{idx => revMapping(cols(idx)) = idx}
+    val result = new Array[Int](n * n)
+    (0 until nRows).foreach{rowNum =>
+      var outerIdx = rowStartIdx(rowNum)
+      val rowEndIdx = rowStartIdx(rowNum + 1)
+      var outerColIdx = 0
+      while( outerIdx < rowEndIdx && outerColIdx < cols.length) {
+        var outerFound = false
+        // find the next column in this vector that is in the target set of columns
+        while( !outerFound && outerIdx < rowEndIdx && outerColIdx < cols.length) {
+          //take advantage of the fact that both arrays are sorted
+          if (colIds(outerIdx) == cols(outerColIdx)) {
+            outerFound = true
+          }
+          else if (colIds(outerIdx) < cols(outerColIdx))
+            outerIdx += 1
+          else
+            outerColIdx += 1
+        }
+        if (outerFound) {
+          //pair this column w/ all other columns in this vector
+          var innerIdx = outerIdx + 1
+          var innerColIdx = outerColIdx + 1
+          while (innerIdx < rowEndIdx && innerColIdx < cols.length) {
+            var found = false
+            //find the next column in the target set
+            while (!found && innerIdx < rowEndIdx && innerColIdx < cols.length) {
+              if (colIds(innerIdx) == cols(innerColIdx)) {
+                //finally, we've got two cols that co-occur in this row, both of which are in the target set
+                // colIds(outerIdx) and colids(innerIdx)
+                val c1 = revMapping(colIds(outerIdx))
+                val c2 = revMapping(colIds(innerIdx))
+                result(c1 * n + c2) += 1
+                innerIdx += 1
+                innerColIdx += 1
+              } else if (colIds(innerIdx) < cols(innerColIdx)) {
+                innerIdx += 1
+              } else {
+                innerColIdx += 1
+              }
+            }
+          }
+          outerIdx += 1
+          outerColIdx += 1
+        }
+      }
+    }
+    result
+  }
+
 }
