@@ -27,7 +27,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int) {
       //update the num & denom counts
 
       //for each feature that was emitted, increment the emission counts by the posterior probability
-      vector.indexAddInto(posteriors, numCounts)
+      vector.outerPlus(posteriors, numCounts)
 
       //update the total number of emissions per class by (posterior * numEmittedFeatures)
       +=(posteriors, vector.nnz, denomCounts)
@@ -109,7 +109,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int) {
       val cumPriors = ArrayUtils.cumSum(logClassPriors(idx).map{math.exp(_).asInstanceOf[Float]})
       val klass = MultinomialSampler.sampleFromCumProbs(cumPriors)
       posterior(klass) = 1
-      vector.indexAddInto(posterior, numCounts)
+      vector.outerPlus(posterior, numCounts)
       +=(posterior, vector.nnz, denomCounts)
       posterior(klass) = 0
       idx += 1

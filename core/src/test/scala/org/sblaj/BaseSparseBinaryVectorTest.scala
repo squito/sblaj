@@ -47,11 +47,11 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
 
   }
 
-  "indexAddInto" should "compute correct answer" in {
+  "outerPlus" should "compute correct answer" in {
     val f = fixture()
     val thetaMod = fixture().theta
     val denseVector = (1 to 3).map(_.toFloat / 10).toArray
-    f.v.indexAddInto(denseVector, thetaMod)
+    f.v.outerPlus(denseVector, thetaMod)
 
     for (i <- (0 until thetaMod.length)) {
       for (j <- (0 until thetaMod(i).length)) {

@@ -36,11 +36,14 @@ trait SparseBinaryVector extends Traversable[Int]{
   def mult(theta:Array[Array[Float]], into: Array[Float]) : Unit
 
   /**
+   * Compute the outer product of this vector with a dense vector, and add it into the given 2d matrix
+   *
    * into(i)(j) += this(i) * vals(j)
+   *
    * @param vals
    * @param into
    */
-  def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) : Unit
+  def outerPlus(vals: Array[Float], into: Array[Array[Float]]) : Unit
 
   def asCountVector: BinaryVectorAsCountVector[SparseBinaryVector] = new GenericSparseBinaryVectorToSparseCountVector(this)
 
@@ -93,7 +96,7 @@ extends SparseBinaryVector with Serializable {
     }
   }
 
-  def indexAddInto(vals: Array[Float], into: Array[Array[Float]]) {
+  def outerPlus(vals: Array[Float], into: Array[Array[Float]]) {
     var rowIdx = startIdx
     while (rowIdx < endIdx) {
       val row = colIds(rowIdx)
