@@ -148,6 +148,25 @@ extends SparseBinaryVector with Serializable {
     val subsetColIds = colIds.filter{Arrays.binarySearch(colIds, _) >= 0}
     new BaseSparseBinaryVector(subsetColIds, 0, subsetColIds.length)
   }
+
+  def dot(other: BaseSparseBinaryVector): Int = {
+    //ugh, wish I could move this up higher in interfaces, but I want to know the concrete type of other for impl ...
+    var thisIdx = startIdx
+    var otherIdx = other.startIdx
+    var sum = 0
+    while (thisIdx < endIdx && otherIdx < other.endIdx) {
+      if (colIds(thisIdx) == other.colIds(otherIdx)) {
+        sum += 1
+        thisIdx += 1
+        otherIdx += 1
+      } else if (colIds(thisIdx) < other.colIds(otherIdx)) {
+        thisIdx += 1
+      } else {
+        otherIdx += 1
+      }
+    }
+    sum
+  }
 }
 
 
