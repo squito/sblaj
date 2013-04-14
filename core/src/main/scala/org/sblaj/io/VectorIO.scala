@@ -162,6 +162,7 @@ object VectorIO extends Logging {
       rowIdx = newIdxs._1
       colIdx = newIdxs._2
     }
+    mat.rowStartIdx(rowIdx) = colIdx
     mat.setSize(rowIdx, colIdx)
     mat
   }
