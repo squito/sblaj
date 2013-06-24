@@ -49,7 +49,9 @@ object SblajBuild extends Build {
     libraryDependencies ++= Seq(
       "log4j" % "log4j" % "1.2.16",
       "org.slf4j" % "slf4j-api" % slf4jVersion,
-      "org.slf4j" % "slf4j-log4j12" % slf4jVersion
+      "org.slf4j" % "slf4j-log4j12" % slf4jVersion,
+      // we use protobuf just for the varint readers
+      "com.google.protobuf" % "protobuf-java" % "2.3.0"
     )
   )
 
