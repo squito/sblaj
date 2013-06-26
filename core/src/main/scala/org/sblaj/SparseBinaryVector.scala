@@ -57,10 +57,9 @@ extends SparseBinaryVector with Serializable {
 
   /**
    * reset this object to point to a different vector
-   * <p>
-   * Note that this method should be used very sparingly -- it violates a lot of the tenants
-   * of functional programming.  However, the performance benefits of avoiding recreating
-   * new objects and forcing more GC are worth it sometimes
+   *
+   * Non-standard for functional programming -- no immutability etc.  However, the performance benefits of avoiding
+   * recreating new objects and forcing more GC are worth it sometimes
    * @param colIds
    * @param startIdx
    * @param endIdx
