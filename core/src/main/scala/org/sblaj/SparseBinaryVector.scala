@@ -6,7 +6,6 @@ import java.util.Arrays
 /**
  *
  */
-
 trait SparseBinaryVector extends Traversable[Int]{
   //TODO can the dense matrix class also be generified, and still performant?
 

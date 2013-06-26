@@ -11,7 +11,7 @@ trait SparseCountVector extends Traversable[MTuple2[Int,Int]]{
 
   //should I also define a two-arg version:
   // foreachPair[U](f: (Int,Int) => U)
-  //?? would make it easier for user to write functions w/ out calling unapply
+  //?? would make it easier for user to write functions w/ out calling unapply and boxing
   //behind the scenes ... dunno how expensive that is
 }
 
