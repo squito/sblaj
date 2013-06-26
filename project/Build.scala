@@ -10,6 +10,8 @@ object SblajBuild extends Build {
   lazy val ml = Project("ml", file("ml"), settings = mlSettings) dependsOn (core)
   lazy val spark = Project("spark", file("spark"), settings = sparkSettings) dependsOn (core)
 
+  lazy val examples = Project("examples", file("examples"), settings = examplesSettings) dependsOn(core, ml, spark)
+
   val qf = "http://repo.quantifind.com/content/repositories/"
   val qfExtSnapshotRepo = "Quantifind External Snapshots" at "http://repo.quantifind.com/content/repositories/ext-snapshots/"
 
@@ -64,5 +66,9 @@ object SblajBuild extends Build {
     libraryDependencies ++= Seq(
       "org.spark-project" % "spark-core_2.9.2" % "0.7.0-SNAPSHOT"
     )
+  )
+
+  def examplesSettings = coreSettings ++ mlSettings ++ sparkSettings ++ Seq(
+    name := "sblaj-examples"
   )
 }
