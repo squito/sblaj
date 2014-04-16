@@ -1,42 +1,43 @@
 package org.sblaj.spark
 
-import _root_.spark._
+import org.apache.spark._
+import org.apache.spark.rdd.RDD
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
-import _root_.spark.storage.StorageLevel
+import org.apache.spark.storage.StorageLevel
 import org.sblaj._
 import collection._
 import org.sblaj.MatrixDims
 
 object SparkFeaturizer {
 
-  //TODO remove this when its released in spark
-  implicit object LongAccumulatorParam extends AccumulatorParam[Long] {
-    def addInPlace(t1: Long, t2: Long): Long = t1 + t2
-    def zero(initialValue: Long) = 0l
-  }
 
-  /**
-   * Convert an RDD into a SparseBinaryMatrix.
-   *
-   * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
-   * will fit in memory.
-   *
-   */
-  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
-    val dictionary = sc.accumulableCollection(new HashMapDictionaryCache[G]())
-    val nnzAcc = sc.accumulator(0l)
 
-    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
-    val nRows = vectorRdd.count
-    val nnz = nnzAcc.value
-    val colDictionary = dictionary.value
-    val nCols = colDictionary.size
-    val matrixDims = new MatrixDims(nRows, nCols, nnz)
-    val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
-    println("creating rdd matrix w/ dims = " + fullDims.totalDims)
-    vectorRdd.persist(storageLevel)
-    new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
+  //TODO bring this back
+  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]): org.sblaj.spark.LongRowSparseVectorRDD[String] = {
+    ???
   }
+//  /**
+//   * Convert an RDD into a SparseBinaryMatrix.
+//   *
+//   * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
+//   * will fit in memory.
+//   *
+//   */
+//  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
+//    val dictionary = sc.accumulableCollection(new HashMapDictionaryCache[G]())
+//    val nnzAcc = sc.accumulator(0l)
+//
+//    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
+//    val nRows = vectorRdd.count
+//    val nnz = nnzAcc.value
+//    val colDictionary = dictionary.value
+//    val nCols = colDictionary.size
+//    val matrixDims = new MatrixDims(nRows, nCols, nnz)
+//    val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
+//    println("creating rdd matrix w/ dims = " + fullDims.totalDims)
+//    vectorRdd.persist(storageLevel)
+//    new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
+//  }
 
 
   def mapWithPartitionDims[A : ClassManifest, B : ClassManifest](

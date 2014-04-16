@@ -2,7 +2,7 @@ package org.sblaj.spark
 
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import org.scalatest.matchers.ShouldMatchers
-import spark.SparkContext
+import org.apache.spark.SparkContext
 
 /**
 *
@@ -28,7 +28,7 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
     SparkFeaturizerTest.withTestLock{
       println("beginnging enumerated in RowSparseVector")
       val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
-      val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, spark.storage.StorageLevel.MEMORY_ONLY)
+      val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, org.apache.spark.storage.StorageLevel.MEMORY_ONLY)
       enumerated.colDictionary should be (matrixRdd.colDictionary)
       enumerated.matrixDims should be (matrixRdd.matrixDims)
       val enumeration = enumerated.colEnumeration
@@ -50,7 +50,7 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
 
   test("subset columns") {
     val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
-    val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, spark.storage.StorageLevel.MEMORY_ONLY)
+    val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, org.apache.spark.storage.StorageLevel.MEMORY_ONLY)
     val subset = enumerated.subsetColumnsByFeature(sc){
       name => name.equals("wakka") || name.equals("ooga booga") || name.equals("foobar")
     }

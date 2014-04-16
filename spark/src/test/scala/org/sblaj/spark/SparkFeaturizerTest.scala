@@ -2,7 +2,7 @@ package org.sblaj.spark
 
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import org.scalatest.matchers.ShouldMatchers
-import spark.SparkContext
+import org.apache.spark.SparkContext
 import org.sblaj.MatrixDims
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
 import org.apache.log4j.{Logger, Level}

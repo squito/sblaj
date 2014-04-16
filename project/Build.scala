@@ -18,8 +18,8 @@ object SblajBuild extends Build {
   def sharedSettings = Defaults.defaultSettings ++ Seq(
     organization := "org.sblaj",
     version := "0.1-SNAPSHOT",
-    scalaVersion := "2.9.1",
-    scalacOptions := Seq(/*"-deprecation",*/ "-unchecked", "-optimize"), // -deprecation is too noisy due to usage of old Hadoop API, enable it once that's no longer an issue
+    scalaVersion := "2.10.4",
+    scalacOptions := Seq("-deprecation", "-unchecked", "-optimize"),
     unmanagedJars in Compile <<= baseDirectory map { base => (base / "lib" ** "*.jar").classpath },
     retrieveManaged := true,
     transitiveClassifiers in Scope.GlobalScope := Seq("sources"),
@@ -34,8 +34,8 @@ object SblajBuild extends Build {
     ),
     libraryDependencies ++= Seq(
       "org.eclipse.jetty" % "jetty-server" % "7.5.3.v20111011",
-      "org.scalatest" %% "scalatest" % "1.6.1" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.9" % "test",
+      "org.scalatest" %% "scalatest" % "2.1.3" % "test",
+      "org.scalacheck" %% "scalacheck" % "1.11.3" % "test",
       "it.unimi.dsi" % "fastutil" % "6.4.4"  //better collections. its a big external dependency, but i think its worth it
     )
   )
@@ -64,7 +64,7 @@ object SblajBuild extends Build {
   def sparkSettings = sharedSettings ++ Seq(
     name := "sblaj-spark",
     libraryDependencies ++= Seq(
-      "org.spark-project" % "spark-core_2.9.2" % "0.7.0-SNAPSHOT"
+      "org.apache.spark" % "spark-core_2.10" % "0.9.1"
     )
   )
 

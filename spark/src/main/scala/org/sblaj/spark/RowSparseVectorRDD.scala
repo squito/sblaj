@@ -2,13 +2,14 @@ package org.sblaj.spark
 
 import org.sblaj.featurization.{FeatureEnumeration, DictionaryCache}
 import org.sblaj._
-import _root_.spark.{SparkContext, RDD}
-import _root_.spark.storage.StorageLevel
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 import collection._
 import featurization.FeatureEnumeration
 import org.sblaj.MatrixDims
 import java.util
-import _root_.spark.SparkContext._
+import org.apache.spark.SparkContext._
 
 trait RowSparseVectorRDD[G] {
   def colDictionary: DictionaryCache[G]

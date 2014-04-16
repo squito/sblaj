@@ -1,9 +1,9 @@
 package org.sblaj.featurization
 
-import collection._
+import scala.collection._
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 import java.io.PrintWriter
-import io.Source
+import scala.io.Source
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 
 /**
@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 trait DictionaryCache[G] extends Traversable[(G,Long)] {
   def addMapping(name: G, code: Long)
   def getEnumeration() : FeatureEnumeration
+  def contains(name:G): Boolean
 }
 
 trait FeatureEnumeration {
@@ -54,6 +55,8 @@ class HashMapDictionaryCache[G] extends DictionaryCache[G] {
     foreach{case(key,code) => m.put(code, key)}
     m
   }
+
+  def contains(name: G) = map.containsKey(name)
 }
 
 class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Serializable{
