@@ -1,6 +1,6 @@
 package org.sblaj.spark
 
-import org.sblaj.featurization.{FeatureEnumeration, DictionaryCache}
+import org.sblaj.featurization.DictionaryCache
 import org.sblaj._
 import org.apache.spark.{Accumulator, SparkContext}
 import org.apache.spark.rdd.RDD
@@ -8,7 +8,6 @@ import org.apache.spark.storage.StorageLevel
 import collection._
 import featurization.FeatureEnumeration
 import org.sblaj.MatrixDims
-import java.util
 import org.apache.spark.SparkContext._
 import org.apache.spark.broadcast.Broadcast
 
