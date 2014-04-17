@@ -23,10 +23,14 @@ trait FeatureEnumeration {
   def size : Int
 }
 
-class HashMapDictionaryCache[G] extends DictionaryCache[G] {
+class HashMapDictionaryCache[G] extends DictionaryCache[G] with Serializable{
   private val map = new Object2LongOpenHashMap[G]()
   def addMapping(name: G, code: Long) {
     map.put(name, code)
+  }
+
+  def ++=(other: HashMapDictionaryCache[G]) {
+    map.putAll(other.map)
   }
 
   def getEnumeration() = {
@@ -70,8 +74,13 @@ class SortEnumeration(val ids: Array[Long]) extends FeatureEnumeration with Seri
 
   override def getLongId(code: Int) = ids(code)
 
-  override def subset(ids: Array[Int]) = {
-    throw new UnsupportedOperationException()
+  override def subset(subIds: Array[Int]) = {
+    val sortedIds = subIds.sorted
+    val subset = new Array[Long](subIds.length)
+    (0 until subIds.length).foreach{i =>
+      subset(i) = ids(sortedIds(i))
+    }
+    new SortEnumeration(subset)
   }
 
   def size = ids.size

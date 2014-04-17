@@ -3,6 +3,7 @@ package org.sblaj.spark
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import org.scalatest.matchers.ShouldMatchers
 import org.apache.spark.SparkContext
+import org.sblaj.featurization.Murmur64
 
 /**
 *
@@ -33,7 +34,7 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
       enumerated.matrixDims should be (matrixRdd.matrixDims)
       val enumeration = enumerated.colEnumeration
       val nFeatures = matrixRdd.matrixDims.totalDims.nCols.toInt
-      //check enuerated ids are in valid range, and are all distinct
+      //check enumerated ids are in valid range, and are all distinct
       val enumeratedIds = enumerated.colDictionary.map{ case (_,longId) =>
         val enumId = enumeration.getEnumeratedId(longId)
         enumId should be ('defined)
@@ -54,6 +55,11 @@ class RowSparseVectorRDDTest extends FunSuite  with ShouldMatchers with BeforeAn
     val subset = enumerated.subsetColumnsByFeature(sc){
       name => name.equals("wakka") || name.equals("ooga booga") || name.equals("foobar")
     }
+    //TODO get handle on RDD w/out casting
+    val rdd = subset.asInstanceOf[EnumeratedSparseVectorRDD[String]].vectorRDD
+    rdd.count() should be (1000)
+    rdd.map{v => v.nnz}.reduce{_ + _} should be (776)
+
     val dims = subset.dims.totalDims
     dims.nRows should be (matrixRdd.matrixDims.totalDims.nRows)
     dims.nCols should be (3)

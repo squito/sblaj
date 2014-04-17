@@ -1,54 +1,70 @@
 package org.sblaj.spark
 
 import org.apache.spark._
+import org.apache.spark.SparkContext._
 import org.apache.spark.rdd.RDD
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
 import org.apache.spark.storage.StorageLevel
 import org.sblaj._
 import collection._
 import org.sblaj.MatrixDims
+import scala.reflect.ClassTag
 
 object SparkFeaturizer {
 
 
+  class HashMapDictionaryCacheAcc[G] extends AccumulableParam[HashMapDictionaryCache[G], (G,Long)] {
+    def addAccumulator(m: HashMapDictionaryCache[G], kv: (G,Long)): HashMapDictionaryCache[G] = {
+      m.addMapping(kv._1, kv._2)
+      m
+    }
+
+    def addInPlace(a: HashMapDictionaryCache[G], b: HashMapDictionaryCache[G]): HashMapDictionaryCache[G] = {
+      a ++= b
+      a
+    }
+
+    def zero(initialValue: HashMapDictionaryCache[G]) = new HashMapDictionaryCache[G]
+  }
+
 
   //TODO bring this back
-  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]): org.sblaj.spark.LongRowSparseVectorRDD[String] = {
-    ???
-  }
-//  /**
-//   * Convert an RDD into a SparseBinaryMatrix.
-//   *
-//   * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
-//   * will fit in memory.
-//   *
-//   */
-//  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
-//    val dictionary = sc.accumulableCollection(new HashMapDictionaryCache[G]())
-//    val nnzAcc = sc.accumulator(0l)
-//
-//    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
-//    val nRows = vectorRdd.count
-//    val nnz = nnzAcc.value
-//    val colDictionary = dictionary.value
-//    val nCols = colDictionary.size
-//    val matrixDims = new MatrixDims(nRows, nCols, nnz)
-//    val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
-//    println("creating rdd matrix w/ dims = " + fullDims.totalDims)
-//    vectorRdd.persist(storageLevel)
-//    new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
+//  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]): org.sblaj.spark.LongRowSparseVectorRDD[String] = {
+//    ???
 //  }
+  /**
+   * Convert an RDD into a SparseBinaryMatrix.
+   *
+   * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
+   * will fit in memory.
+   *
+   */
+  def rowPerRecord[U: ClassTag,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
+    val dictionary = sc.accumulable(new HashMapDictionaryCache[G]())(new HashMapDictionaryCacheAcc[G])
+    val nnzAcc = sc.accumulator(0l)
+
+    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
+    val nRows = vectorRdd.count
+    val nnz = nnzAcc.value
+    val colDictionary = dictionary.value
+    val nCols = colDictionary.size
+    val matrixDims = new MatrixDims(nRows, nCols, nnz)
+    val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
+    println("creating rdd matrix w/ dims = " + fullDims.totalDims)
+    vectorRdd.persist(storageLevel)
+    new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
+  }
 
 
-  def mapWithPartitionDims[A : ClassManifest, B : ClassManifest](
+  def mapWithPartitionDims[A : ClassTag, B : ClassTag](
     rdd: RDD[A],
     sc: SparkContext
   )(
     transform: Iterator[A] => (FinalValueIterator[B,(Long,Long)])
   ) : (RDD[B], Accumulable[mutable.HashMap[Int, (Long,Long)], _]) = {
     val partitionDims = sc.accumulableCollection(mutable.HashMap[Int, (Long, Long)]())
-    val transformedRDD = rdd.mapPartitionsWithSplit{
-      case (split, itr) =>
+    val transformedRDD = rdd.mapPartitionsWithIndex{
+      case (partIdx, itr) =>
         val finalValIterator = transform(itr)
         new Iterator[B]() {
           def next = finalValIterator.next
@@ -56,7 +72,7 @@ object SparkFeaturizer {
             val r = finalValIterator.hasNext
             if (!r) {
               //now store our accumulator updates
-              partitionDims.localValue += (split -> finalValIterator.finalValue)
+              partitionDims.localValue += (partIdx -> finalValIterator.finalValue)
             }
             r
           }

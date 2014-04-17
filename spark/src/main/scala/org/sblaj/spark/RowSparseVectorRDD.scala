@@ -2,7 +2,7 @@ package org.sblaj.spark
 
 import org.sblaj.featurization.{FeatureEnumeration, DictionaryCache}
 import org.sblaj._
-import org.apache.spark.SparkContext
+import org.apache.spark.{Accumulator, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.storage.StorageLevel
 import collection._
@@ -10,6 +10,7 @@ import featurization.FeatureEnumeration
 import org.sblaj.MatrixDims
 import java.util
 import org.apache.spark.SparkContext._
+import org.apache.spark.broadcast.Broadcast
 
 trait RowSparseVectorRDD[G] {
   def colDictionary: DictionaryCache[G]
@@ -55,7 +56,7 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
 
   override def dims = matrixDims
 
-  override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel) = {
+  override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel): EnumeratedSparseVectorRDD[G] = {
     val enumeration = sc.broadcast(colDictionary.getEnumeration())
     //TODO dictionary needs to be upated w/ enumeration
     val enumVectorsRdd = vectorRdd.map {
@@ -107,31 +108,16 @@ class EnumeratedSparseVectorRDD[G](
     val bcSubsetEnumeration = sc.broadcast(subsetEnumeration)
     val bcOrigEnumeration = sc.broadcast(colEnumeration)
     // we need to keep track of how the number of non-zeros changes in each partition
-
     val totalNnz = sc.accumulator(0l)
-    class TransformIter(val itr: Iterator[BaseSparseBinaryVector])
-      extends FinalValueIterator[BaseSparseBinaryVector, (Long,Long)] {
-      var nrows = 0
-      var nnz = 0
-      val sub = itr.map{vector =>
-        val newRow : BaseSparseBinaryVector = vector.subset(ids)
-        // not the most efficient way to remap the ids, but it works for now
-        newRow.colIds = newRow.colIds.flatMap{oldId =>
-          val longId = bcOrigEnumeration.value.getLongId(oldId)
-          bcSubsetEnumeration.value.getEnumeratedId(longId)
-        }.sorted
 
-        nnz += newRow.nnz
-        totalNnz += nnz
-        nrows += 1
-        newRow
-      }
-      def next = sub.next
-      def hasNext = sub.hasNext
-      def finalValue = (nrows, nnz)
-    }
+    val transformer = new ColumnSubsetter(ids, bcOrigEnumeration, bcSubsetEnumeration,totalNnz)
 
-    val (subRdd, partitionDims) = SparkFeaturizer.mapWithPartitionDims(vectorRDD, sc)(itr => new TransformIter(itr))
+    val (subRdd, partitionDims) = SparkFeaturizer.mapWithPartitionDims(vectorRDD, sc)(transformer)
+
+    //b/c map with partitions is lazy, we don't actually have the new dims yet unless we force it to run.
+    // perhaps we should change the "dim" abstraction to be lazy as well.
+    subRdd.cache()
+    subRdd.count()
 
     val subDims = new RowMatrixPartitionDims(
       new MatrixDims(nRows = matrixDims.totalDims.nRows, nCols = ids.length, nnz = totalNnz.value),
@@ -172,3 +158,36 @@ class EnumeratedSparseVectorRDD[G](
   }
 }
 
+
+private[spark] class ColumnSubsetter(
+  val ids: Array[Int],
+  val bcOrigEnumeration: Broadcast[FeatureEnumeration],
+  val bcSubsetEnumeration: Broadcast[FeatureEnumeration],
+  val totalNnz: Accumulator[Long]
+)
+  extends Function[Iterator[BaseSparseBinaryVector],FinalValueIterator[BaseSparseBinaryVector, (Long,Long)]]
+  with Serializable
+{
+
+  def apply(itr: Iterator[BaseSparseBinaryVector]) = new FinalValueIterator[BaseSparseBinaryVector, (Long,Long)]{
+    var nrows = 0
+    var nnz = 0
+    val sub = itr.map{vector =>
+      val newRow : BaseSparseBinaryVector = vector.subset(ids)
+      // not the most efficient way to remap the ids, but it works for now
+      newRow.colIds = newRow.colIds.flatMap{oldId =>
+        val longId = bcOrigEnumeration.value.getLongId(oldId)
+        bcSubsetEnumeration.value.getEnumeratedId(longId)
+      }.sorted
+
+      nnz += newRow.nnz
+      totalNnz += newRow.nnz
+      nrows += 1
+      newRow
+    }
+    def next = sub.next
+    def hasNext = sub.hasNext
+    def finalValue = (nrows, nnz)
+
+  }
+}
