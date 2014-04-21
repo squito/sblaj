@@ -57,7 +57,7 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
 
   override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel): EnumeratedSparseVectorRDD[G] = {
     val enumeration = sc.broadcast(colDictionary.getEnumeration())
-    println("enumerating vector RDD of size " + matrixDims)
+    println("enumerating vector RDD of size " + matrixDims.totalDims)
     //TODO dictionary needs to be upated w/ enumeration
     val enumVectorsRdd = vectorRdd.map {
       v =>
@@ -66,7 +66,8 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
         new BaseSparseBinaryVector(enumeratedFeatures, 0, enumeratedFeatures.length)  //TODO keep rowId
     }
     enumVectorsRdd.persist(storageLevel)
-    enumVectorsRdd.count  //just to force the calculation
+    val c = enumVectorsRdd.count  //just to force the calculation
+    println(s"$c enumerated vectors")
     new EnumeratedSparseVectorRDD[G](enumVectorsRdd, matrixDims, colDictionary,enumeration.value)
   }
 }
@@ -80,6 +81,7 @@ class EnumeratedSparseVectorRDD[G](
 ) extends EnumeratedRowSparseVectorRDD[G] {
   override def toSparseMatrix(sc: SparkContext) = {
     val vectors = vectorRDD.collect()
+    println("collected " + vectors.size + " vectors")
     val matrix = new SparseBinaryRowMatrix(nMaxRows = matrixDims.totalDims.nRows.toInt,
       nMaxNonZeros = matrixDims.totalDims.nnz.toInt,
       nColumns = matrixDims.totalDims.nCols.toInt)
