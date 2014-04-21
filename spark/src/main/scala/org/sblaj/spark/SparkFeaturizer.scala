@@ -44,6 +44,7 @@ object SparkFeaturizer {
     val nnzAcc = sc.accumulator(0l)
 
     val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
+    vectorRdd.persist(storageLevel)
     val nRows = vectorRdd.count
     val nnz = nnzAcc.value
     val colDictionary = dictionary.value
@@ -51,7 +52,6 @@ object SparkFeaturizer {
     val matrixDims = new MatrixDims(nRows, nCols, nnz)
     val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
     println("creating rdd matrix w/ dims = " + fullDims.totalDims)
-    vectorRdd.persist(storageLevel)
     new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
   }
 
