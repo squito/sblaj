@@ -9,7 +9,8 @@ import collection._
 class SparseBinaryRowMatrix private (nMaxRows: Int, nMaxNonZeros:Int, nColumns: Int, columnIds: Array[Int], rowStartIdxs: Array[Int])
   extends SparseMatrix
   with Traversable[SparseBinaryVector]  //maybe this should be part of SparseMatrix?
-  {
+  with Serializable
+{
 
   val maxRows: Int = nMaxRows
   val maxNnz: Int = nMaxNonZeros
