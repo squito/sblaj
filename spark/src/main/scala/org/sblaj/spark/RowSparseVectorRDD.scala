@@ -57,6 +57,7 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
 
   override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel): EnumeratedSparseVectorRDD[G] = {
     val enumeration = sc.broadcast(colDictionary.getEnumeration())
+    println("enumerating vector RDD of size " + matrixDims)
     //TODO dictionary needs to be upated w/ enumeration
     val enumVectorsRdd = vectorRdd.map {
       v =>
