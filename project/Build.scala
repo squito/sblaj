@@ -64,7 +64,7 @@ object SblajBuild extends Build {
   def sparkSettings = sharedSettings ++ Seq(
     name := "sblaj-spark",
     libraryDependencies ++= Seq(
-      "org.apache.spark" % "spark-core_2.10" % "0.9.1"
+      "org.apache.spark" % "spark-core_2.10" % "0.8.0.99e517d"
     ),
     parallelExecution in Test := false
   )
