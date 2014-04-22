@@ -95,6 +95,7 @@ class EnumeratedSparseVectorRDD[G](
         rowIdx += 1
     }
     matrix.rowStartIdx(rowIdx) = colIdx
+    matrix.setSize(rowIdx, colIdx)
     matrix
   }
 
