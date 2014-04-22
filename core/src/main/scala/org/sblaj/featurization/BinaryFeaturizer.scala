@@ -7,6 +7,7 @@ import java.io._
 import scala.Serializable
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream
 import collection._
+import scala.util.hashing.MurmurHash3
 
 trait BinaryFeaturizer[T] {
   //TODO this interface needs some work
@@ -165,12 +166,9 @@ object Murmur64 {
   val highBitMask: Long = 0xffffffffl
 
   def hash64(s: String) : Long = {
-    val murmur = new MurmurHash[String](0xf7ca7fd2)
-    val hash = MurmurHash.stringHash(s)
-    murmur.append(hash)
-    val low = murmur.hash.asInstanceOf[Long]
-    murmur.append(hash)
-    val high = murmur.hash.asInstanceOf[Long]
+    val hash = MurmurHash3.stringHash(s)
+    val low = hash.asInstanceOf[Long]
+    val high = MurmurHash3.mix(hash, hash).asInstanceOf[Long]
     (high << 32) | (low & highBitMask)
   }
 }

@@ -27,11 +27,6 @@ object SparkFeaturizer {
     def zero(initialValue: HashMapDictionaryCache[G]) = new HashMapDictionaryCache[G]
   }
 
-
-  //TODO bring this back
-//  def rowPerRecord[U: ClassManifest,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]): org.sblaj.spark.LongRowSparseVectorRDD[String] = {
-//    ???
-//  }
   /**
    * Convert an RDD into a SparseBinaryMatrix.
    *
@@ -39,11 +34,18 @@ object SparkFeaturizer {
    * will fit in memory.
    *
    */
-  def rowPerRecord[U: ClassTag,G](data: RDD[U], sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY)(rowIdAssigner: U => Long)(featureExtractor: U => Traversable[G]) = {
+  def rowPerRecord[U: ClassTag,G](
+    data: RDD[U],
+    sc: SparkContext,
+    storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
+    rddName: Option[String] = None)
+  (rowIdAssigner: U => Long)
+  (featureExtractor: U => Traversable[G]) = {
     val dictionary = sc.accumulable(new HashMapDictionaryCache[G]())(new HashMapDictionaryCacheAcc[G])
     val nnzAcc = sc.accumulator(0l)
 
     val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
+    rddName.foreach{n => vectorRdd.setName(n)}
     vectorRdd.persist(storageLevel)
     val nRows = vectorRdd.count
     val nnz = nnzAcc.value
