@@ -172,3 +172,9 @@ object Murmur64 {
     (high << 32) | (low & highBitMask)
   }
 }
+
+object SampleUtils {
+  def toUnit(long: Long): Double = {
+    long.toDouble / Long.MaxValue
+  }
+}

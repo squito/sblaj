@@ -69,7 +69,7 @@ object SparkFeaturizerTest {
 
   def makeSimpleMatrixRDD(sc: SparkContext) : LongRowSparseVectorRDD[String] = {
     val origData = sc.parallelize(1 to 1e3.toInt, 20)
-    val matrixRDD = SparkFeaturizer.rowPerRecord(origData, sc) {_.toLong} { i =>
+    val matrixRDD = SparkFeaturizer.accumulatorRowPerRecord(origData, sc) {_.toLong} { i =>
       var l = List[String]()
       l +:=  i.toString
       if (i % 2 == 0)
