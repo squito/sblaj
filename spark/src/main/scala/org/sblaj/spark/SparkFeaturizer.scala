@@ -8,7 +8,7 @@ import org.apache.spark.storage.StorageLevel
 import org.sblaj._
 import collection._
 import scala.reflect.ClassTag
-import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
+import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, Long2IntOpenHashMap}
 import org.sblaj.MatrixDims
 
 object SparkFeaturizer {
@@ -72,9 +72,13 @@ object SparkFeaturizer {
       reverseEnum(idx) = hash
     }
 
-    //TODO wrap this up into a dictionary and return it
+    val long2String = new Long2ObjectOpenHashMap[Seq[String]]()
+    limitedFeatures.foreach{case(hash,names) =>
+      long2String.put(hash, names._1)
+    }
+
     new GeneralCompleteDictionary[String](
-      elems = null, //TODO
+      elems = long2String,
       hashToECode,
       reverseEnum
     )

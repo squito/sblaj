@@ -113,7 +113,7 @@ object ArrayCodeLookup {
   }
 }
 
-class HashToEnum(val map: Long2IntMap) extends Function[Long,Option[Int]] {
+class HashToEnum(val map: Long2IntMap) extends Function[Long,Option[Int]] with Serializable {
   map.defaultReturnValue(-1)
   def apply(l: Long): Option[Int] = {
     val r = map.get(l)
