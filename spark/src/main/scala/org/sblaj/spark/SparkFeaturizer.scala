@@ -36,14 +36,11 @@ object SparkFeaturizer {
     minCount: Int = 10,
     topFeatures: Int = 1e6.toInt)
   (rowIdAssigner: U => Long)
-  (featureExtractor: U => Traversable[String]): GeneralCompleteDictionary[String] = {
+  (featureExtractor: U => Traversable[String]): (RDD[DictionaryRow], DictionaryBuildingAccumulatorBundle) = {
 
     val tooLowAcc = sc.accumulator(0l)
     val okAcc = sc.accumulator(0l)
     val collisionsInFinalFeatures = sc.accumulator(0l)
-
-
-
 
     // we could probably do the map-side combine more efficiently ourselves, since we can use a specialized map
     val featureCountsRdd: RDD[(Long, (Vector[String], Int))] = data.flatMap{in =>
@@ -71,7 +68,7 @@ object SparkFeaturizer {
     val preciseMinCount = getHistogramCutoff(featureCountsHistogram, topFeatures)
     println("precise min count = " + preciseMinCount)
 
-    val features = featureCountsRdd.filter{case(fHash, (features, counts)) =>
+    val dictionaryRdd = featureCountsRdd.filter{case(fHash, (features, counts)) =>
       if (counts > preciseMinCount) {
         okAcc += 1
         if (features.size > 1)
@@ -81,11 +78,16 @@ object SparkFeaturizer {
         tooLowAcc += 1
         false
       }
-    }.collect()
-    println("features below minCount = " + tooLowAcc.value)
-    println("ok features = " + okAcc.value)
+    }.map{case(fHash, (features, counts)) => DictionaryRow(fHash, features, counts)}
+    (dictionaryRdd, DictionaryBuildingAccumulatorBundle(okAcc, tooLowAcc, collisionsInFinalFeatures))
+  }
 
-    val limitedFeatures = features.sortBy{-_._2._2}.take(topFeatures)
+  def dictRddToInMem(rdd: RDD[DictionaryRow]): GeneralCompleteDictionary[String] = {
+
+    /* amazingly, even after filtering down to the top 1M features, we can still run out of memory
+       when we try to collect, with 16GB.  Pretty insane if you think about it.
+     */
+    val limitedFeatures = rdd.map{d => (d.hash, d.names.map{truncate(_,30)}.mkString("|OR|"), d.count)}.collect()
 
     val hashToECode = new Long2IntOpenHashMap()
     val reverseEnum = new Array[Long](limitedFeatures.length)
@@ -96,8 +98,8 @@ object SparkFeaturizer {
     }
 
     val long2String = new Long2ObjectOpenHashMap[Seq[String]]()
-    limitedFeatures.foreach{case(hash,names) =>
-      long2String.put(hash, names._1)
+    limitedFeatures.foreach{case(hash,names, count) =>
+      long2String.put(hash, Seq(names)) //TODO I've already flattened the strings, I should remove the Seq
     }
 
     new GeneralCompleteDictionary[String](
@@ -110,6 +112,7 @@ object SparkFeaturizer {
   def scalableRowPerRecord[U: ClassTag](
     data: RDD[U],
     sc: SparkContext,
+    rddDir: String,
     storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
     rddName: Option[String] = None,
     dictionarySampleRate: Double = 0.1,
@@ -119,13 +122,22 @@ object SparkFeaturizer {
   (featureExtractor: U => Traversable[String]): EnumeratedSparseVectorRDD[String] = {
 
 
-    val dictionary = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
+    val (dictionaryRdd,dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
+    dictionaryRdd.persist(storageLevel)
+    dictionaryRdd.saveAsObjectFile(rddDir + "/dictionary")
+
+    println("features below minCount = " + dictionaryAccs.tooLow.value)
+    println("ok features = " + dictionaryAccs.ok.value)
+    println("collisions = " + dictionaryAccs.collisions.value)
+
+    val dictionary = dictRddToInMem(dictionaryRdd)
 
     val bcHashToECode = sc.broadcast(new HashToEnum(dictionary.enumerated))
     val nnzAcc = sc.accumulator(0l)
     val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new SubsetTransformIter[U](itr,featureExtractor,nnzAcc, bcHashToECode.value)}
     rddName.foreach{vectorRdd.setName}
     vectorRdd.persist(storageLevel)
+    vectorRdd.saveAsObjectFile(rddDir + "/enumerated_vectors")
     val nRows = vectorRdd.count
     val nnz = nnzAcc.value
 
@@ -211,6 +223,11 @@ object SparkFeaturizer {
       cutoff -=1
     cutoff
   }
+
+  def truncate(s: String, l: Int): String = {
+    if (s.length > l) s.substring(0,l)
+    else s
+  }
 }
 
 trait FinalValueIterator[A,B] extends Iterator[A] {
@@ -274,3 +291,14 @@ private class SubsetTransformIter[U](
 }
 
 
+case class DictionaryRow(
+  hash: Long,
+  names: Seq[String],
+  count: Int
+)
+
+case class DictionaryBuildingAccumulatorBundle(
+  ok: Accumulator[Long],
+  tooLow: Accumulator[Long],
+  collisions: Accumulator[Long]
+)
