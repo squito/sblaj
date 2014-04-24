@@ -58,6 +58,19 @@ class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAft
     println(m2.dims.totalDims)
   }}
 
+
+  test ("getHistogramCutoff") {
+    val histo = Array((20,1),(19,4), (10, 100), (9,500))
+    SparkFeaturizer.getHistogramCutoff(histo, 1) should be (19)
+    SparkFeaturizer.getHistogramCutoff(histo, 2) should be (19)
+    SparkFeaturizer.getHistogramCutoff(histo, 4) should be (19)
+    SparkFeaturizer.getHistogramCutoff(histo, 5) should be (10)
+    SparkFeaturizer.getHistogramCutoff(histo, 104) should be (10)
+    SparkFeaturizer.getHistogramCutoff(histo, 105) should be (9)
+    SparkFeaturizer.getHistogramCutoff(histo, 605) should be (8)
+    SparkFeaturizer.getHistogramCutoff(histo, 700) should be (8)
+  }
+
 }
 
 object SparkFeaturizerTest {

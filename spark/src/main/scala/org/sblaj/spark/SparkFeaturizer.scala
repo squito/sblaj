@@ -40,25 +40,48 @@ object SparkFeaturizer {
 
     val tooLowAcc = sc.accumulator(0l)
     val okAcc = sc.accumulator(0l)
+    val collisionsInFinalFeatures = sc.accumulator(0l)
+
+
+
 
     // we could probably do the map-side combine more efficiently ourselves, since we can use a specialized map
-    val featureCountsRdd = data.flatMap{in =>
+    val featureCountsRdd: RDD[(Long, (Vector[String], Int))] = data.flatMap{in =>
       if (SampleUtils.toUnit(Murmur64.hash64(rowIdAssigner(in).toString)) < dictionarySampleRate) {
         featureExtractor(in).map{f => (Murmur64.hash64(f.toString), (Vector(f), 1))}
       } else {
         Seq()
       }
-    }.reduceByKey{case ((features1,count1), (features2, count2)) => (features1 ++ features2, count1 + count2)}.
-      filter{case (fHash, (features, counts)) =>
-        if (counts >= minCount) {
-          okAcc += 1
-          true
-        } else {
-          tooLowAcc += 1
-          false
-        }
+    }.reduceByKey{case ((features1,count1), (features2, count2)) =>
+      (features1 ++ features2, count1 + count2)
+    }.filter{ case (fHash, (features, counts)) =>
+      if (counts >= minCount) {
+        true
+      } else {
+        tooLowAcc += 1
+        false
+      }
     }
-    val features = featureCountsRdd.collect()
+      .persist(StorageLevel.MEMORY_ONLY)
+
+    //we could probably do this approximately, with larger buckets, but this should still scale pretty well
+    val featureCountsHistogram = featureCountsRdd.map{case(fHash, (features, counts)) => (counts,1)}.
+      reduceByKey{_ + _}.collect().sortBy{- _._1}
+
+    val preciseMinCount = getHistogramCutoff(featureCountsHistogram, topFeatures)
+    println("precise min count = " + preciseMinCount)
+
+    val features = featureCountsRdd.filter{case(fHash, (features, counts)) =>
+      if (counts > preciseMinCount) {
+        okAcc += 1
+        if (features.size > 1)
+          collisionsInFinalFeatures += 1
+        true
+      } else {
+        tooLowAcc += 1
+        false
+      }
+    }.collect()
     println("features below minCount = " + tooLowAcc.value)
     println("ok features = " + okAcc.value)
 
@@ -168,6 +191,25 @@ object SparkFeaturizer {
     }
 
     (transformedRDD, partitionDims)
+  }
+
+  /**
+   * find the cutoff to get the top *max* elements.
+   * returns the first value that should *not* be included
+   */
+  def getHistogramCutoff(histo: Array[(Int,Int)], max: Int): Int = {
+    //could potentially be refactored into a general histogram
+    var total = 0
+    var cutoff = histo(0)._1
+    val itr = histo.iterator
+    while( itr.hasNext && total <= max) {
+      val (v, counts) = itr.next()
+      total += counts
+      cutoff = v
+    }
+    if (total <= max) //we've read everything, still haven't gone over the limit.  take everything
+      cutoff -=1
+    cutoff
   }
 }
 
