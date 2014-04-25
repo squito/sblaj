@@ -165,11 +165,11 @@ object Murmur64 {
 
   val highBitMask: Long = 0xffffffffl
 
-  def hash64(s: String) : Long = {
-    val hash = MurmurHash3.stringHash(s)
-    val low = hash.asInstanceOf[Long]
-    val high = MurmurHash3.mix(hash, hash).asInstanceOf[Long]
-    (high << 32) | (low & highBitMask)
+  def hash64(cs: CharSequence) : Long = {
+    val s = cs.toString
+    val low = MurmurHash3.stringHash(s)
+    val high = MurmurHash3.stringHash(s, low)
+    (high.toLong << 32) | (low & highBitMask)
   }
 }
 
