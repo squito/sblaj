@@ -133,9 +133,10 @@ object SparkFeaturizer {
 
     val (dictionaryRdd,dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
     println("sample dictionaryRows:")
-    dictionaryRdd.take(10).foreach{println}
+    dictionaryRdd.setName("limited dictionary RDD")
     dictionaryRdd.persist(storageLevel)
     dictionaryRdd.saveAsObjectFile(rddDir + "/dictionary")
+    dictionaryRdd.take(10).foreach{println}
 
     println("features below minCount = " + dictionaryAccs.tooLow.value)
     println("ok features = " + dictionaryAccs.ok.value)
