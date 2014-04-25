@@ -43,42 +43,46 @@ object SparkFeaturizer {
     val collisionsInFinalFeatures = sc.accumulator(0l)
 
     // we could probably do the map-side combine more efficiently ourselves, since we can use a specialized map
-    val featureCountsRdd: RDD[(Long, (Vector[String], Int))] = data.flatMap{in =>
+    val featureCountsRdd: RDD[(String, Int)] = data.flatMap{in =>
       if (SampleUtils.toUnit(Murmur64.hash64(rowIdAssigner(in).toString)) < dictionarySampleRate) {
-        featureExtractor(in).map{f => (Murmur64.hash64(f.toString), (Vector(f), 1))}
+        featureExtractor(in).map{f => (f,1)}
       } else {
         Seq()
       }
-    }.reduceByKey{case ((features1,count1), (features2, count2)) =>
-      (features1 ++ features2, count1 + count2)
-    }.filter{ case (fHash, (features, counts)) =>
+    }.reduceByKey{_ + _}
+    .filter{ case (feature, counts) =>
       if (counts >= minCount) {
         true
       } else {
         tooLowAcc += 1
         false
       }
-    }
-      .persist(StorageLevel.MEMORY_ONLY)
+    }.setName("feature-counts")
+    .persist(StorageLevel.MEMORY_ONLY)
 
     //we could probably do this approximately, with larger buckets, but this should still scale pretty well
-    val featureCountsHistogram = featureCountsRdd.map{case(fHash, (features, counts)) => (counts,1)}.
+    val featureCountsHistogram = featureCountsRdd.map{case (feature, counts) => (counts,1)}.
       reduceByKey{_ + _}.collect().sortBy{- _._1}
 
     val preciseMinCount = getHistogramCutoff(featureCountsHistogram, topFeatures)
     println("precise min count = " + preciseMinCount)
 
-    val dictionaryRdd = featureCountsRdd.filter{case(fHash, (features, counts)) =>
+    val dictionaryRdd: RDD[DictionaryRow] = featureCountsRdd.filter{case(feature, counts) =>
       if (counts > preciseMinCount) {
         okAcc += 1
-        if (features.size > 1)
-          collisionsInFinalFeatures += 1
         true
       } else {
         tooLowAcc += 1
         false
       }
-    }.map{case(fHash, (features, counts)) => DictionaryRow(fHash, features, counts)}
+    }.map{case(feature, counts) =>
+      (Murmur64.hash64(feature.toString),(feature, counts))
+    }.groupByKey().map{case(fHash, featuresAndCounts) =>
+      if (featuresAndCounts.size > 1) {
+        collisionsInFinalFeatures += 1
+      }
+      DictionaryRow(fHash, featuresAndCounts)
+    }
     (dictionaryRdd, DictionaryBuildingAccumulatorBundle(okAcc, tooLowAcc, collisionsInFinalFeatures))
   }
 
@@ -87,7 +91,12 @@ object SparkFeaturizer {
     /* amazingly, even after filtering down to the top 1M features, we can still run out of memory
        when we try to collect, with 16GB.  Pretty insane if you think about it.
      */
-    val limitedFeatures = rdd.map{d => (d.hash, d.names.map{truncate(_,30)}.mkString("|OR|"), d.count)}.collect()
+    val limitedFeatures = rdd.map{d =>
+      val joinedName = d.namesAndCounts.map{_._1}.map{truncate(_,30)}.mkString("|OR|")
+      val totalCount = d.namesAndCounts.map{_._2}.sum
+      (d.hash, joinedName, totalCount)
+    }.collect()
+    println("collected limited features, building in memory dictionary")
 
     val hashToECode = new Long2IntOpenHashMap()
     val reverseEnum = new Array[Long](limitedFeatures.length)
@@ -123,6 +132,8 @@ object SparkFeaturizer {
 
 
     val (dictionaryRdd,dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
+    println("sample dictionaryRows:")
+    dictionaryRdd.take(10).foreach{println}
     dictionaryRdd.persist(storageLevel)
     dictionaryRdd.saveAsObjectFile(rddDir + "/dictionary")
 
@@ -131,6 +142,8 @@ object SparkFeaturizer {
     println("collisions = " + dictionaryAccs.collisions.value)
 
     val dictionary = dictRddToInMem(dictionaryRdd)
+    println("unpersisting dictionary")
+    dictionaryRdd.unpersist()
 
     val bcHashToECode = sc.broadcast(new HashToEnum(dictionary.enumerated))
     val nnzAcc = sc.accumulator(0l)
@@ -293,8 +306,7 @@ private class SubsetTransformIter[U](
 
 case class DictionaryRow(
   hash: Long,
-  names: Seq[String],
-  count: Int
+  namesAndCounts: Seq[(String,Int)]
 )
 
 case class DictionaryBuildingAccumulatorBundle(
