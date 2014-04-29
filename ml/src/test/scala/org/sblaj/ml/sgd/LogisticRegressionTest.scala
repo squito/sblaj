@@ -1,15 +1,14 @@
 package org.sblaj.ml.sgd
 
-import org.scalatest.FunSuite
+import org.scalatest.{Matchers, FunSuite}
 import org.sblaj.{SparseBinaryRowMatrix, ArrayUtils}
 import org.sblaj.ml.samplers.BinomialSampler
-import org.scalatest.matchers.ShouldMatchers
 
 /**
  *
  */
 
-class LogisticRegressionTest extends FunSuite with ShouldMatchers {
+class LogisticRegressionTest extends FunSuite with Matchers {
 
   def makeData(nSamples: Int, weights: Array[Float], featureRates: Array[Float]) = {
     //first, make the data
@@ -53,7 +52,7 @@ class LogisticRegressionTest extends FunSuite with ShouldMatchers {
     }
 
     weights.zipWithIndex.foreach { case (w,idx) =>
-      regressor.weights(idx) should be (w plusOrMinus 0.2f)
+      regressor.weights(idx) should be (w +- 0.2f)
     }
   }
 

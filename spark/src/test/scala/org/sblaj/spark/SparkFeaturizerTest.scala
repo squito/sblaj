@@ -1,13 +1,12 @@
 package org.sblaj.spark
 
-import org.scalatest.{BeforeAndAfter, FunSuite}
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, BeforeAndAfter, FunSuite}
 import org.apache.spark.SparkContext
 import org.sblaj.MatrixDims
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
 import org.apache.log4j.{Logger, Level}
 
-class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAfter {
+class SparkFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
   var sc : SparkContext = null
   before {

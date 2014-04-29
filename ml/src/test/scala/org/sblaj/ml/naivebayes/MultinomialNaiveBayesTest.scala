@@ -1,8 +1,7 @@
 package org.sblaj.ml.naivebayes
 
-import org.scalatest.FunSuite
+import org.scalatest.{Matchers, FunSuite}
 import org.sblaj.{ArrayUtils, SparseBinaryRowMatrix, BaseSparseBinaryVector, SparseBinaryVector}
-import org.scalatest.matchers.ShouldMatchers
 import org.sblaj.ArrayUtils._
 import org.sblaj.ml.samplers.{BinomialSampler, MultinomialSampler}
 
@@ -10,7 +9,7 @@ import org.sblaj.ml.samplers.{BinomialSampler, MultinomialSampler}
  *
  */
 
-class MultinomialNaiveBayesTest extends FunSuite with ShouldMatchers {
+class MultinomialNaiveBayesTest extends FunSuite with Matchers {
   test("class posterior") {
     //come up with rates
     val nClasses = 3
@@ -25,8 +24,8 @@ class MultinomialNaiveBayesTest extends FunSuite with ShouldMatchers {
     val posterior = new Array[Float](3)
     MultinomialNaiveBayes.classPosteriors(vector, logTheta, logPriors, posterior)
 
-    arraySum(posterior, 0, 3) should be (1.0f plusOrMinus 0.00001f)
-    posterior(0) should be (1.0f plusOrMinus 0.00001f)
+    arraySum(posterior, 0, 3) should be (1.0f +- 0.00001f)
+    posterior(0) should be (1.0f +- 0.00001f)
   }
 
   //TODO move to more general location

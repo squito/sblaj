@@ -1,10 +1,10 @@
 package org.sblaj
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.{MatchResult, ShouldMatchers, Matcher}
+import org.scalatest.{Matchers, FunSuite}
+import org.scalatest.matchers.{MatchResult,Matcher}
 import ArrayUtils._
 
-class ArrayUtilsTest extends FunSuite with ShouldMatchers {
+class ArrayUtilsTest extends FunSuite with Matchers {
 
   val beNan = new Matcher[Float] {
     def apply(v: Float) = {
@@ -35,7 +35,7 @@ class ArrayUtilsTest extends FunSuite with ShouldMatchers {
 
       var idx = 0
       while (idx < scaledNorm.length) {
-        logProbs(idx) should be(scaledNorm(idx) plusOrMinus 0.0001f)
+        logProbs(idx) should be(scaledNorm(idx) +- 0.0001f)
         idx += 1
       }
     }
@@ -48,14 +48,14 @@ class ArrayUtilsTest extends FunSuite with ShouldMatchers {
     val into = Array[Float](0.1f, 0.2f, 0.3f)
     val add = Array[Float](0.5f, 0.3f, 0.1f)
     +=(add, into)
-    into(0) should be (0.6f plusOrMinus eps)
-    into(1) should be (0.5f plusOrMinus eps)
-    into(2) should be (0.4f plusOrMinus eps)
+    into(0) should be (0.6f +- eps)
+    into(1) should be (0.5f +- eps)
+    into(2) should be (0.4f +- eps)
 
 
     +=(add, 3, into)
-    into(0) should be (2.1f plusOrMinus eps)
-    into(1) should be (1.4f plusOrMinus eps)
-    into(2) should be (0.7f plusOrMinus eps)
+    into(0) should be (2.1f +- eps)
+    into(1) should be (1.4f +- eps)
+    into(2) should be (0.7f +- eps)
   }
 }

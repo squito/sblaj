@@ -1,14 +1,12 @@
 package org.sblaj.featurization
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FunSuite}
 
 /**
  *
  */
 
-class BinaryFeaturizerTest extends FunSuite with ShouldMatchers {
-
+class BinaryFeaturizerTest extends FunSuite with Matchers {
 
   test("murmur64") {
     val strings = List("oogabooga", "abcdefg", "a;lkdjfapdf", "", "a", "b", "ba", "ab", "AB")

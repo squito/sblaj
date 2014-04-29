@@ -1,9 +1,8 @@
 package org.sblaj
 
-import org.scalatest.FlatSpec
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FlatSpec}
 
-class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
+class BaseSparseBinaryVectorTest extends FlatSpec with Matchers {
 
   def fixture() = {
     new {
@@ -24,7 +23,7 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
     val f = fixture()
     val denseVector = (1 to 10).map(_.toFloat / 10).toArray
     val result = f.v.dot(denseVector)
-    result.toDouble should be ( (0.1 + 0.6 + 0.9) plusOrMinus 0.00001)
+    result.toDouble should be ( (0.1 + 0.6 + 0.9) +- 0.00001)
   }
 
   "mult" should "compute correct answer" in {
@@ -33,7 +32,7 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
     f.v.mult(f.theta, result)
     for (j <- 0 until 3) {
       val v = result(j).toDouble
-      v should be ( (5.0 + 8) + (3 * j) plusOrMinus 0.000001)
+      v should be ( (5.0 + 8) + (3 * j) +- 0.000001)
     }
 
     //should add to whatever is already there
@@ -42,7 +41,7 @@ class BaseSparseBinaryVectorTest extends FlatSpec with ShouldMatchers {
     f.v.mult(f.theta, result)
     for (j <- 0 until 3) {
       val v = result(j).toDouble
-      v should be ( (5.0 + 8) + (3 * j) + initial(j) plusOrMinus 0.000001)
+      v should be ( (5.0 + 8) + (3 * j) + initial(j) +- 0.000001)
     }
 
   }
