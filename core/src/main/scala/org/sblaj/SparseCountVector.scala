@@ -1,31 +1,67 @@
 package org.sblaj
 
-/**
- * a vector of features, where each feature has an integer count associated with it
- */
-trait SparseCountVector extends Traversable[MTuple2[Int,Int]]{
-  //TODO define these functions
-//  def nnz: Int
-//  def get(col:Int): Int
-//  def dot(x: Array[Float]): Float
+import org.sblaj.featurization.FeatureEnumeration
+import java.util.Arrays
 
-  //should I also define a two-arg version:
-  // foreachPair[U](f: (Int,Int) => U)
-  //?? would make it easier for user to write functions w/ out calling unapply and boxing
-  //behind the scenes ... dunno how expensive that is
+/**
+ * Created by matt on 4/28/14.
+ */
+trait SparseCountVector extends Traversable[MTuple2[Int,Int]] {
+  def nnz : Int
+  def get(col:Int): Int
 }
 
-class BaseSparseCountVector(
-  var colIdsAndCounts: Array[Int],
-  var startIdx: Int,
-  var endIdx: Int
-) extends SparseCountVector {
-  def foreach[U](f: MTuple2[Int,Int] => U) {
+class LongSparseCountVector(val colIds: Array[Long], val cnts: Array[Int], val startIdx: Int, val endIdx: Int) extends Serializable {
+
+  // the vector occupies a portion of a single array of Long features [293L, 16L] & [11, 2)
+  // we can map Long to enumerated ints                               [3, 1]
+  //
+  def enumerateInto(into: Array[Int], intoCnts: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
+    var sourceIdx = startIdx
+    var targetIdx = pos
+    while (sourceIdx < endIdx) {
+      enumeration.getEnumeratedId(colIds(sourceIdx)).foreach{intCode =>
+        into(targetIdx) = intCode
+        intoCnts(targetIdx) = cnts(sourceIdx)
+        targetIdx += 1
+      }
+      sourceIdx += 1
+    }
+    Sorting.sortParallel(into, intoCnts, pos, targetIdx-pos)
+    targetIdx
+
+  }
+}
+
+class LongSparseCountVectorWithRowId(val rowId: Long, override val colIds: Array[Long], override val cnts: Array[Int],
+                                     override val startIdx: Int, override val endIdx: Int)
+  extends LongSparseCountVector(colIds, cnts, startIdx, endIdx) with RowId
+
+
+class BaseSparseCountVector(var colIds: Array[Int], var cnts: Array[Int], var startIdx: Int, var endIdx: Int)
+  extends SparseCountVector with Serializable {
+
+  def nnz = endIdx - startIdx
+
+  def get(col : Int) : Int =
+    Arrays.binarySearch(colIds, startIdx, endIdx, col) match {
+      case no if no < 0 => 0
+      case idx => cnts(idx)
+    }
+
+  def reset(colIds: Array[Int], cnts: Array[Int], startIdx: Int, endIdx: Int) {
+    this.colIds = colIds
+    this.cnts = cnts
+    this.startIdx = startIdx
+    this.endIdx = endIdx
+  }
+
+  override def foreach[U](f: MTuple2[Int,Int] => U) {
     val pair = new MTuple2[Int,Int](0,0)
     var idx = startIdx
     while (idx < endIdx) {
-      pair._1 = colIdsAndCounts(idx)
-      pair._2 = colIdsAndCounts(idx + 1)
+      pair._1 = colIds(idx)
+      pair._2 = cnts(idx)
       f(pair)
       idx += 2
     }

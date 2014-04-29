@@ -174,6 +174,7 @@ extends SparseBinaryVector with Serializable {
 //TODO figure out to get rid of the Int / Long types, and use @specialized.
 // however, not all of the methods make sense w/ Long col ids (eg., dot(Array[Float]), so probably need another base type
 class LongSparseBinaryVector(val colIds: Array[Long], val startIdx: Int, val endIdx: Int) extends Serializable {
+
   def enumerateInto(into: Array[Int], pos: Int, enumeration: FeatureEnumeration) = {
     var sourceIdx = startIdx
     var targetIdx = pos
@@ -210,7 +211,8 @@ class GenericSparseBinaryVectorToSparseCountVector(var binaryVector: SparseBinar
   extends SparseCountVector
   with BinaryVectorAsCountVector[SparseBinaryVector]
 {
-  def foreach[U](f: MTuple2[Int,Int] => U) {
+
+  override def foreach[U](f: MTuple2[Int,Int] => U) {
     val pair = new MTuple2[Int,Int](0,0)
     binaryVector.foreach{colId =>
       pair._1 = colId
@@ -218,5 +220,9 @@ class GenericSparseBinaryVectorToSparseCountVector(var binaryVector: SparseBinar
       f(pair)
     }
   }
-  def reset(vector: SparseBinaryVector) {binaryVector = vector}
+  override def reset(vector: SparseBinaryVector) {binaryVector = vector}
+
+  override def nnz: Int = binaryVector.nnz
+
+  override def get(col: Int): Int = binaryVector.get(col)
 }
