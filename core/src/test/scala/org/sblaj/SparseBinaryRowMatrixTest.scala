@@ -1,13 +1,12 @@
 package org.sblaj
 
-import org.scalatest.{FlatSpec, Suite}
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FlatSpec}
 
 /**
  *
  */
 
-class SparseBinaryRowMatrixTest extends FlatSpec with ShouldMatchers {
+class SparseBinaryRowMatrixTest extends FlatSpec with Matchers {
 
   def fixture() = {
     new {

@@ -1,11 +1,10 @@
 package org.sblaj.io
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FunSuite}
 import java.io._
 import org.sblaj.LongSparseBinaryVector
 
-class VectorIOTest extends FunSuite with ShouldMatchers {
+class VectorIOTest extends FunSuite with Matchers {
 
   val testRootFile = new File("test/generated/VectorIOTest")
   testRootFile.mkdirs()

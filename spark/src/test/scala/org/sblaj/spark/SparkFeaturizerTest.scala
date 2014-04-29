@@ -1,13 +1,12 @@
 package org.sblaj.spark
 
-import org.scalatest.{BeforeAndAfter, FunSuite}
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, BeforeAndAfter, FunSuite}
 import org.apache.spark.SparkContext
 import org.sblaj.MatrixDims
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
 import org.apache.log4j.{Logger, Level}
 
-class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAfter {
+class SparkFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
   var sc : SparkContext = null
   before {
@@ -58,6 +57,19 @@ class SparkFeaturizerTest extends FunSuite with ShouldMatchers with BeforeAndAft
     println(m2.dims.totalDims)
   }}
 
+
+  test ("getHistogramCutoff") {
+    val histo = Array((20,1),(19,4), (10, 100), (9,500))
+    SparkFeaturizer.getHistogramCutoff(histo, 1) should be (19)
+    SparkFeaturizer.getHistogramCutoff(histo, 2) should be (19)
+    SparkFeaturizer.getHistogramCutoff(histo, 4) should be (19)
+    SparkFeaturizer.getHistogramCutoff(histo, 5) should be (10)
+    SparkFeaturizer.getHistogramCutoff(histo, 104) should be (10)
+    SparkFeaturizer.getHistogramCutoff(histo, 105) should be (9)
+    SparkFeaturizer.getHistogramCutoff(histo, 605) should be (8)
+    SparkFeaturizer.getHistogramCutoff(histo, 700) should be (8)
+  }
+
 }
 
 object SparkFeaturizerTest {
@@ -69,7 +81,7 @@ object SparkFeaturizerTest {
 
   def makeSimpleMatrixRDD(sc: SparkContext) : LongRowSparseVectorRDD[String] = {
     val origData = sc.parallelize(1 to 1e3.toInt, 20)
-    val matrixRDD = SparkFeaturizer.rowPerRecord(origData, sc) {_.toLong} { i =>
+    val matrixRDD = SparkFeaturizer.accumulatorRowPerRecord(origData, sc) {_.toLong} { i =>
       var l = List[String]()
       l +:=  i.toString
       if (i % 2 == 0)

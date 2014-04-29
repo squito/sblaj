@@ -1,13 +1,12 @@
 package org.sblaj.ml.framework
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FunSuite}
 
 /**
  *
  */
 
-class AccumulatorsTest extends FunSuite with ShouldMatchers {
+class AccumulatorsTest extends FunSuite with Matchers {
   test("DenseFloatAccumulators") {
     val a = new DenseFloatArrayAccumulator(5)
     a.length should be (5)

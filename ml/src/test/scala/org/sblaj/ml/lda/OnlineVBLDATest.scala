@@ -1,17 +1,17 @@
 package org.sblaj.ml.lda
 
-import org.scalatest.matchers.ShouldMatchers
 import org.sblaj.{StreamToBatch, SparseBinaryVectorBuilder, SparseBinaryVector}
 import collection._
 import org.sblaj.ml.samplers.MultinomialSampler
 import org.sblaj.ml.GeneratedDataSet
 import org.apache.log4j.Logger
+import org.scalatest.Matchers
 
 /**
  *
  */
 
-class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
+class OnlineVBLDATest extends GeneratedDataSet with Matchers {
 
   val logger = Logger.getLogger(classOf[OnlineVBLDATest])
 
@@ -26,7 +26,7 @@ class OnlineVBLDATest extends GeneratedDataSet with ShouldMatchers {
     generateEasyDataSet(nTopics, nWords, nDocs, nTopicsPerDocument, wordsPerDocument)
   } { dataset =>
     val lda = OnlineVBLDA(dataset.nTopics, dataset.nWords, dataset.nDocuments)
-    val nIterations = 100
+    val nIterations = 10
     var lastElbo : Option[Float] = None
     val elbos = (0 to nIterations).flatMap{ itr =>
       val batches = new StreamToBatch(lda.maxBatchSize, dataset.documents.iterator)

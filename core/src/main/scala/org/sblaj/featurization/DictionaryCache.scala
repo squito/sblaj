@@ -4,7 +4,7 @@ import scala.collection._
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap
 import java.io.PrintWriter
 import scala.io.Source
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.longs.{Long2ObjectMap, Long2IntMap, Long2ObjectOpenHashMap}
 
 /**
  *
@@ -111,4 +111,56 @@ object ArrayCodeLookup {
     }
     new ArrayCodeLookup[String](arr)
   }
+}
+
+class HashToEnum(val map: Long2IntMap) extends Function[Long,Option[Int]] with Serializable {
+  map.defaultReturnValue(-1)
+  def apply(l: Long): Option[Int] = {
+    val r = map.get(l)
+    if (r == -1)
+      None
+    else
+      Some(r)
+  }
+}
+
+
+class GeneralCompleteDictionary[G](
+  val elems: Long2ObjectMap[Seq[G]],
+  val enumerated: Long2IntMap,
+  val reverseEnum: Array[Long]
+) extends DictionaryCache[G] with FeatureEnumeration {
+
+  enumerated.defaultReturnValue(-1)
+
+  def addMapping(name: G, code: Long) { throw new UnsupportedOperationException("can't add to this dictionary")}
+  override def getEnumeration() : FeatureEnumeration = this
+  def contains(name:G): Boolean = {
+    val hash = Murmur64.hash64(name.toString)
+    elems.get(hash).contains(name)
+  }
+
+  def getEnumeratedId(code:Long) : Option[Int] = {
+    val c = enumerated.get(code)
+    if (c == -1)
+      None
+    else
+      Some(c)
+  }
+  override def getLongId(code: Int) : Long = {
+    reverseEnum(code)
+  }
+  override def subset(ids: Array[Int]) : FeatureEnumeration = ???
+
+  override def foreach[T](f: ((G,Long)) => T) {
+    val itr = elems.entrySet().iterator()
+    while(itr.hasNext) {
+      val e = itr.next()
+      val code = e.getKey()
+      e.getValue().foreach{ name =>
+        f((name,code))
+      }
+    }
+  }
+
 }
