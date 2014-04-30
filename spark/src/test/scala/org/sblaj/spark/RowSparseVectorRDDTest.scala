@@ -12,7 +12,7 @@ class RowSparseVectorRDDTest extends FunSuite  with Matchers with BeforeAndAfter
   var sc : SparkContext = null
 
   before {
-    SparkFeaturizerTest.silenceSparkLogging
+    SparkBinaryFeaturizerTest.silenceSparkLogging
     sc = new SparkContext("local[4]", "row sparse vector rdd test")
   }
 
@@ -24,9 +24,9 @@ class RowSparseVectorRDDTest extends FunSuite  with Matchers with BeforeAndAfter
   }
 
   test("enumerated") {
-    SparkFeaturizerTest.withTestLock{
+    SparkBinaryFeaturizerTest.withTestLock{
       println("beginnging enumerated in RowSparseVector")
-      val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
+      val matrixRdd = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
       val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, org.apache.spark.storage.StorageLevel.MEMORY_ONLY)
       enumerated.colDictionary should be (matrixRdd.colDictionary)
       enumerated.matrixDims should be (matrixRdd.matrixDims)
@@ -48,13 +48,13 @@ class RowSparseVectorRDDTest extends FunSuite  with Matchers with BeforeAndAfter
   }
 
   test("subset columns") {
-    val matrixRdd = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
+    val matrixRdd = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
     val enumerated = matrixRdd.toEnumeratedVectorRDD(sc, org.apache.spark.storage.StorageLevel.MEMORY_ONLY)
     val subset = enumerated.subsetColumnsByFeature(sc){
       name => name.equals("wakka") || name.equals("ooga booga") || name.equals("foobar")
     }
     //TODO get handle on RDD w/out casting
-    val rdd = subset.asInstanceOf[EnumeratedSparseVectorRDD[String]].vectorRDD
+    val rdd = subset.asInstanceOf[EnumeratedSparseBinaryVectorRDD[String]].vectorRDD
     rdd.count() should be (1000)
     rdd.map{v => v.nnz}.reduce{_ + _} should be (776)
 

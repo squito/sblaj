@@ -5,6 +5,10 @@ package org.sblaj
  */
 object Sorting {
   // adapted from scala.util.sorting
+  def sortParallel[K: Ordering, T](x: Array[K], x2: Array[T]) {
+    sortParallel(x, x2, 0, x.length)
+  }
+
   def sortParallel[K: Ordering, T](x: Array[K], x2: Array[T], off: Int, len: Int) {
     val ord = Ordering[K]
     import ord._

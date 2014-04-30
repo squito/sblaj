@@ -56,6 +56,21 @@ class BaseSparseCountVector(var colIds: Array[Int], var cnts: Array[Int], var st
     this.endIdx = endIdx
   }
 
+  // we have colIds we want to keep those _and their associated counts)
+  def subset(colsToKeep: Array[Int]) : BaseSparseCountVector = {
+    //slow, but works
+    val (subsetColIds, subsetCnts) = colsToKeep.flatMap {
+      colId =>
+        val idx = Arrays.binarySearch(colIds, startIdx, endIdx, colId)
+        if (idx >= 0) {
+          Some(colId -> cnts(idx))
+        } else {
+          None
+        }
+    }.unzip
+    new BaseSparseCountVector(subsetColIds.toArray, subsetCnts.toArray, 0, subsetColIds.length)
+  }
+
   override def foreach[U](f: MTuple2[Int,Int] => U) {
     val pair = new MTuple2[Int,Int](0,0)
     var idx = startIdx

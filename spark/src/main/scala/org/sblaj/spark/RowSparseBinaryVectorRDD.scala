@@ -11,14 +11,14 @@ import org.sblaj.MatrixDims
 import org.apache.spark.SparkContext._
 import org.apache.spark.broadcast.Broadcast
 
-trait RowSparseVectorRDD[G] {
+trait RowSparseBinaryVectorRDD[G] {
   def colDictionary: DictionaryCache[G]
   def dims: RowMatrixPartitionDims
   //TODO add min feature counts
-  def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY): EnumeratedRowSparseVectorRDD[G]
+  def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY): EnumeratedRowSparseBinaryVectorRDD[G]
 }
 
-trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
+trait EnumeratedRowSparseBinaryVectorRDD[G] extends RowSparseBinaryVectorRDD[G] {
   /**
    * collects the RDD into an in-memory matrix on the driver
    */
@@ -34,7 +34,7 @@ trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
    */
   def foreach(f: SparseBinaryVector => Unit)
 
-  def subsetColumnsByFeature(sc: SparkContext)(f: G => Boolean) : EnumeratedRowSparseVectorRDD[G] = {
+  def subsetColumnsByFeature(sc: SparkContext)(f: G => Boolean) : EnumeratedRowSparseBinaryVectorRDD[G] = {
     val enumeration = colEnumeration
     val validIds = colDictionary.flatMap{case (feature,id) => if (f(feature)) Some(id) else None}.toArray.map{
       longId => enumeration.getEnumeratedId(longId).get
@@ -42,20 +42,20 @@ trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
     subsetColumnById(sc, validIds)
   }
 
-  def subsetColumnById(sc: SparkContext, ids: Array[Int]) : EnumeratedRowSparseVectorRDD[G]
+  def subsetColumnById(sc: SparkContext, ids: Array[Int]) : EnumeratedRowSparseBinaryVectorRDD[G]
 
-  def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) : EnumeratedRowSparseVectorRDD[G]
+  def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) : EnumeratedRowSparseBinaryVectorRDD[G]
 }
 
 case class RowMatrixPartitionDims(val totalDims: MatrixDims, val partitionDims: Map[Int, (Long,Long)])
 
-class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRowId],
-                                val matrixDims: RowMatrixPartitionDims,
-                                val colDictionary: DictionaryCache[G]) extends RowSparseVectorRDD[G] {
+class LongRowSparseBinaryVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRowId],
+                                     val matrixDims: RowMatrixPartitionDims,
+                                     val colDictionary: DictionaryCache[G]) extends RowSparseBinaryVectorRDD[G] {
 
   override def dims = matrixDims
 
-  override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel): EnumeratedSparseVectorRDD[G] = {
+  override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel): EnumeratedSparseBinaryVectorRDD[G] = {
     val enumeration = sc.broadcast(colDictionary.getEnumeration())
     println("enumerating vector RDD of size " + matrixDims.totalDims)
     //TODO dictionary needs to be upated w/ enumeration
@@ -68,17 +68,17 @@ class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRow
     enumVectorsRdd.persist(storageLevel)
     val c = enumVectorsRdd.count  //just to force the calculation
     println(s"$c enumerated vectors")
-    new EnumeratedSparseVectorRDD[G](enumVectorsRdd, matrixDims, colDictionary,enumeration.value)
+    new EnumeratedSparseBinaryVectorRDD[G](enumVectorsRdd, matrixDims, colDictionary, enumeration.value)
   }
 }
 
 //TODO this should be templated
-class EnumeratedSparseVectorRDD[G](
-    val vectorRDD: RDD[BaseSparseBinaryVector],
-    val matrixDims: RowMatrixPartitionDims,
-    val colDictionary: DictionaryCache[G],
-    val colEnumeration: FeatureEnumeration
-) extends EnumeratedRowSparseVectorRDD[G] {
+class EnumeratedSparseBinaryVectorRDD[G](
+                                         val vectorRDD: RDD[BaseSparseBinaryVector],
+                                         val matrixDims: RowMatrixPartitionDims,
+                                         val colDictionary: DictionaryCache[G],
+                                         val colEnumeration: FeatureEnumeration
+                                         ) extends EnumeratedRowSparseBinaryVectorRDD[G] {
   override def toSparseMatrix(sc: SparkContext) = {
     val vectors = vectorRDD.collect()
     println("collected " + vectors.size + " vectors")
@@ -113,9 +113,9 @@ class EnumeratedSparseVectorRDD[G](
     // we need to keep track of how the number of non-zeros changes in each partition
     val totalNnz = sc.accumulator(0l)
 
-    val transformer = new ColumnSubsetter(ids, bcOrigEnumeration, bcSubsetEnumeration,totalNnz)
+    val transformer = new BinaryColumnSubsetter(ids, bcOrigEnumeration, bcSubsetEnumeration,totalNnz)
 
-    val (subRdd, partitionDims) = SparkFeaturizer.mapWithPartitionDims(vectorRDD, sc)(transformer)
+    val (subRdd, partitionDims) = SparkBinaryFeaturizer.mapWithPartitionDims(vectorRDD, sc)(transformer)
 
     //b/c map with partitions is lazy, we don't actually have the new dims yet unless we force it to run.
     // perhaps we should change the "dim" abstraction to be lazy as well.
@@ -126,7 +126,7 @@ class EnumeratedSparseVectorRDD[G](
       new MatrixDims(nRows = matrixDims.totalDims.nRows, nCols = ids.length, nnz = totalNnz.value),
       partitionDims = partitionDims.value
     )
-    new EnumeratedSparseVectorRDD[G](subRdd, subDims, colDictionary, subsetEnumeration)
+    new EnumeratedSparseBinaryVectorRDD[G](subRdd, subDims, colDictionary, subsetEnumeration)
   }
 
   override def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) = {
@@ -152,17 +152,17 @@ class EnumeratedSparseVectorRDD[G](
       def finalValue = (nrows, nnz)
     }
 
-    val (subRdd, partitionDims) = SparkFeaturizer.mapWithPartitionDims(vectorRDD, sc)(itr => new TransformIter(itr))
+    val (subRdd, partitionDims) = SparkBinaryFeaturizer.mapWithPartitionDims(vectorRDD, sc)(itr => new TransformIter(itr))
     val subDims = new RowMatrixPartitionDims(
       new MatrixDims(nRows = totalRows.value, nCols =  matrixDims.totalDims.nCols, nnz = totalNnz.value),
       partitionDims = partitionDims.value
     )
-    new EnumeratedSparseVectorRDD[G](subRdd, subDims, colDictionary, colEnumeration)
+    new EnumeratedSparseBinaryVectorRDD[G](subRdd, subDims, colDictionary, colEnumeration)
   }
 }
 
 
-private[spark] class ColumnSubsetter(
+private[spark] class BinaryColumnSubsetter(
   val ids: Array[Int],
   val bcOrigEnumeration: Broadcast[FeatureEnumeration],
   val bcSubsetEnumeration: Broadcast[FeatureEnumeration],

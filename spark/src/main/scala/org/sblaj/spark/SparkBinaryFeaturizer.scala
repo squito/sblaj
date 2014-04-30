@@ -11,7 +11,7 @@ import scala.reflect.ClassTag
 import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, Long2IntOpenHashMap}
 import org.sblaj.MatrixDims
 
-object SparkFeaturizer {
+object SparkBinaryFeaturizer {
 
 
   class HashMapDictionaryCacheAcc[G] extends AccumulableParam[HashMapDictionaryCache[G], (G,Long)] {
@@ -128,7 +128,7 @@ object SparkFeaturizer {
     minCount: Int = 10,
     topFeatures: Int = 1e6.toInt)
   (rowIdAssigner: U => Long)
-  (featureExtractor: U => Traversable[String]): EnumeratedSparseVectorRDD[String] = {
+  (featureExtractor: U => Traversable[String]): EnumeratedSparseBinaryVectorRDD[String] = {
 
 
     val (dictionaryRdd,dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
@@ -148,7 +148,7 @@ object SparkFeaturizer {
 
     val bcHashToECode = sc.broadcast(new HashToEnum(dictionary.enumerated))
     val nnzAcc = sc.accumulator(0l)
-    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new SubsetTransformIter[U](itr,featureExtractor,nnzAcc, bcHashToECode.value)}
+    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new BinarySubsetTransformIter[U](itr,featureExtractor,nnzAcc, bcHashToECode.value)}
     rddName.foreach{vectorRdd.setName}
     vectorRdd.persist(storageLevel)
     vectorRdd.saveAsObjectFile(rddDir + "/enumerated_vectors")
@@ -156,7 +156,7 @@ object SparkFeaturizer {
     val nnz = nnzAcc.value
 
     val dims = RowMatrixPartitionDims(totalDims = new MatrixDims(nRows, dictionary.reverseEnum.length, nnz), partitionDims = partitionDims.value)
-    new EnumeratedSparseVectorRDD[String](vectorRdd, dims, dictionary, dictionary)
+    new EnumeratedSparseBinaryVectorRDD[String](vectorRdd, dims, dictionary, dictionary)
   }
 
 
@@ -175,11 +175,11 @@ object SparkFeaturizer {
     storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
     rddName: Option[String] = None)
   (rowIdAssigner: U => Long)
-  (featureExtractor: U => Traversable[G]): LongRowSparseVectorRDD[G] = {
+  (featureExtractor: U => Traversable[G]): LongRowSparseBinaryVectorRDD[G] = {
     val dictionary = sc.accumulable(new HashMapDictionaryCache[G]())(new HashMapDictionaryCacheAcc[G])
     val nnzAcc = sc.accumulator(0l)
 
-    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
+    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc){itr => new TransformBinIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)}
     rddName.foreach{n => vectorRdd.setName(n)}
     vectorRdd.persist(storageLevel)
     val nRows = vectorRdd.count
@@ -189,7 +189,7 @@ object SparkFeaturizer {
     val matrixDims = new MatrixDims(nRows, nCols, nnz)
     val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
     println("creating rdd matrix w/ dims = " + fullDims.totalDims)
-    new LongRowSparseVectorRDD[G](vectorRdd, fullDims, colDictionary)
+    new LongRowSparseBinaryVectorRDD[G](vectorRdd, fullDims, colDictionary)
   }
 
 
@@ -248,7 +248,7 @@ trait FinalValueIterator[A,B] extends Iterator[A] {
   def finalValue : B
 }
 
-private class TransformIter[U,G](
+private class TransformBinIter[U,G](
     val itr: Iterator[U],
     val rowIdAssigner: U => Long,
     val featureExtractor: U => Traversable[G],
@@ -281,7 +281,7 @@ private class TransformIter[U,G](
   override def finalValue = (partitionsRows, partitionNnz)
 }
 
-private class SubsetTransformIter[U](
+private class BinarySubsetTransformIter[U](
   val itr: Iterator[U],
   val featureExtractor: U => Traversable[String],
   val nnz: Accumulator[Long],
