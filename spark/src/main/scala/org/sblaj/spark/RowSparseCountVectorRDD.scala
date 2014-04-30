@@ -44,14 +44,13 @@ class LongRowSparseCountVectorRDD[G](val vectorRdd: RDD[LongSparseCountVectorWit
 
   override def toEnumeratedVectorRDD(sc: SparkContext, storageLevel: StorageLevel): EnumeratedSparseCountVectorRDD[G] = {
     val enumeration = sc.broadcast(colDictionary.getEnumeration())
-    println("enumerating vector RDD of size " + matrixDims.totalDims)
     //TODO dictionary needs to be updated w/ enumeration
     val enumVectorsRdd = vectorRdd.map {
       v =>
         val enumeratedFeatures = v.colIds.map{enumeration.value.getEnumeratedId(_).get}
         val enumeratedCounts = v.cnts.clone()
         Sorting.sortParallel(enumeratedFeatures, enumeratedCounts)
-        new BaseSparseCountVector(enumeratedFeatures, v.cnts, 0, enumeratedFeatures.length)  //TODO keep rowId
+        new BaseSparseCountVector(enumeratedFeatures, enumeratedCounts, 0, enumeratedFeatures.length)  //TODO keep rowId
     }
     enumVectorsRdd.persist(storageLevel)
     val c = enumVectorsRdd.count  //just to force the calculation

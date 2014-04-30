@@ -300,7 +300,7 @@ private class TransformCntIter[U, G](
           cnts(idx) = cnt
           idx += 1
       }
-      java.util.Arrays.sort(featureIds)
+      Sorting.sortParallel(featureIds, cnts)
       new LongSparseCountVectorWithRowId(rowId, featureIds, cnts, 0, featureIds.length)
   }
 
