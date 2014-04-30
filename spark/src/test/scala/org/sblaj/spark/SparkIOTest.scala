@@ -45,6 +45,7 @@ class SparkIOTest extends FunSuite with Matchers with BeforeAndAfter {
     loadedRdd.count should be (1e4.toInt)
     loadedRdd.first.size should be > 0
     val first10 = loadedRdd.take(10)
+    //this is a really important check -- the way the record reading works, its easy to just blast the old records
     first10(0) should not be theSameInstanceAs(first10(1))
   }
 
