@@ -3,6 +3,9 @@ package org.sblaj.spark
 import org.scalatest.{BeforeAndAfter, Matchers, FunSuite}
 import org.apache.spark.SparkContext
 import scala.util.Random
+import org.sblaj.BaseSparseBinaryVector
+import java.io._
+import java.nio.ByteBuffer
 
 /**
  *
@@ -41,5 +44,31 @@ class SparkIOTest extends FunSuite with Matchers with BeforeAndAfter {
 
     loadedRdd.count should be (1e4.toInt)
     loadedRdd.first.size should be > 0
+  }
+
+  test("spark io to normal io") {
+    val data = Seq(
+      new BaseSparseBinaryVector(Array(0,5,8,10), 0, 4),
+      new BaseSparseBinaryVector(Array(1,2,3,4,5,6,7), 0, 7)
+    )
+    val vectorRDD = sc.parallelize(data, 1)
+
+    val path = "test/output/spark_io_test/normal_io"
+    SparkIO.saveSparseBinaryVectorRdd(vectorRDD, path)
+
+    val partFiles = new File(path).listFiles().filter{_.getName().startsWith("part-")}
+    partFiles.size should be (1)
+    val in = new DataInputStream(new FileInputStream(partFiles.head))
+    val buffer = new Array[Byte](200) //more than enough
+    val nRead = in.read(buffer)
+    nRead should be ((4 + 7 + 2) * 4)
+    val intBuf = ByteBuffer.wrap(buffer, 0, nRead).asIntBuffer()
+    data.foreach{v =>
+      intBuf.get() should be (v.size)
+      (0 until v.size).foreach{idx =>
+        intBuf.get() should be (v.colIds(idx))
+      }
+    }
+
   }
 }
