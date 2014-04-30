@@ -30,16 +30,26 @@ object SparkIO {
     saveMatrixDims(rdd.dims, dimsPath)
   }
 
+  /**
+   * this saves the rdd in a *binary* format, that can also be read in *outside* of hadoop.  The idea is that you can
+   * then grab some of these files and read them in in a simple, single-node program.  Can be read back in with
+   * loadSparseBinaryVectorRdd, and also outside of hadoop by XXX THIS METHOD NEEDS TO BE WRITTEN
+   */
   def saveSparseBinaryVectorRdd(rdd: RDD[BaseSparseBinaryVector], path: String) {
-    rdd.map(x => (NullWritable.get(), IntArrayWritable(x)))
+    rdd.map(x => (NullWritable.get(), x))
       .saveAsHadoopFile(
         path = path,
         keyClass = classOf[NullWritable],
-        valueClass = classOf[IntArrayWritable],
+        //valueClass is irrelevant for this use case -- probably matters if we want to write a sequence file which we
+        // read in later w/ hadoop?
+        valueClass = classOf[BaseSparseBinaryVector],
         outputFormatClass = classOf[SparseBinaryArrayOutputFormat]
       )
   }
 
+  /**
+   * load a set of binary vectors that have been saved with saveSparseBinaryVectorRdd
+   */
   def loadSparseBinaryVectorRdd(sc: SparkContext, path: String): RDD[BaseSparseBinaryVector] = {
     val inputFormatClass = classOf[SparseBinaryArrayInputFormat]
     //TODO min splits
@@ -47,11 +57,7 @@ object SparkIO {
       path = path,
       inputFormatClass = inputFormatClass,
       keyClass = classOf[NullWritable],
-      valueClass = classOf[IntArrayWritable])
-      .map{pair =>
-        val arr = pair._2.get().map{_.asInstanceOf[IntWritable].get()}
-        new BaseSparseBinaryVector(arr, 0, arr.length)
-    }
+      valueClass = classOf[BaseSparseBinaryVector]).map{x => x._2.clone()}
   }
 
   def saveMatrixDims(dims: RowMatrixPartitionDims, path: String) {
@@ -74,61 +80,43 @@ object SparkIO {
 
 }
 
-class IntArrayWritable extends ArrayWritable(classOf[IntWritable])
-object IntArrayWritable {
-  def apply(arr: Array[Int], startIdx: Int, endIdx: Int): IntArrayWritable = {
-    val r = new Array[Writable](endIdx - startIdx)
-    (startIdx until endIdx).foreach{idx =>
-      r(idx - startIdx) = new IntWritable(arr(idx))
-    }
-    val w = new IntArrayWritable()
-    w.set(r)
-    w
-  }
-  def apply(v: BaseSparseBinaryVector): IntArrayWritable = {
-    apply(v.colIds, v.startIdx, v.endIdx)
-  }
-}
-
-
-class SparseBinaryArrayOutputFormat extends FileOutputFormat[NullWritable, IntArrayWritable] {
+class SparseBinaryArrayOutputFormat extends FileOutputFormat[NullWritable, BaseSparseBinaryVector] {
 
   def getRecordWriter(ignored: FileSystem,
     job: JobConf,
     name: String,
     progress: Progressable
-  ): RecordWriter[NullWritable, IntArrayWritable] = {
+  ): RecordWriter[NullWritable, BaseSparseBinaryVector] = {
       val file = FileOutputFormat.getTaskOutputPath(job, name)
       val fs = file.getFileSystem(job)
       val fileOut = fs.create(file, progress)
       new BytesRecordWriter(fileOut)
     }
 
-  class BytesRecordWriter(out: DataOutputStream) extends RecordWriter[NullWritable, IntArrayWritable] {
+  class BytesRecordWriter(out: DataOutputStream) extends RecordWriter[NullWritable, BaseSparseBinaryVector] {
     def close(rep: Reporter) {
       out.close()
     }
-    def write(key: NullWritable,value: IntArrayWritable) {
-      val arr = value.get()
-      out.writeInt(arr.length)
-      arr.foreach{w =>
-        out.writeInt(w.asInstanceOf[IntWritable].get())
+    def write(key: NullWritable,value: BaseSparseBinaryVector) {
+      out.writeInt(value.size)
+      (value.startIdx until value.endIdx).foreach{idx =>
+        out.writeInt(value.colIds(idx))
       }
     }
   }
 }
 
-class SparseBinaryArrayInputFormat extends FileInputFormat[NullWritable, IntArrayWritable] {
+class SparseBinaryArrayInputFormat extends FileInputFormat[NullWritable, BaseSparseBinaryVector] {
   def getRecordReader(
     split: InputSplit,
     job: JobConf,
     reporter:Reporter
-  ): RecordReader[NullWritable,IntArrayWritable] = {
+  ): RecordReader[NullWritable,BaseSparseBinaryVector] = {
     reporter.setStatus(split.toString())
     new BytesRecordReader(job, split.asInstanceOf[FileSplit])
   }
 
-  class BytesRecordReader(job: JobConf, split: FileSplit) extends RecordReader[NullWritable, IntArrayWritable] {
+  class BytesRecordReader(job: JobConf, split: FileSplit) extends RecordReader[NullWritable, BaseSparseBinaryVector] {
     //TODO won't work w/ a codec
     val start = split.getStart()
     val end = start + split.getLength()
@@ -143,17 +131,23 @@ class SparseBinaryArrayInputFormat extends FileInputFormat[NullWritable, IntArra
 
     def close() { fileIn.close()}
     def createKey() = {NullWritable.get()}
-    def createValue() = {new IntArrayWritable()}
+    def createValue() = {new BaseSparseBinaryVector(new Array[Int](100), 0, 0)}
     def getPos(): Long = pos
     def getProgress(): Float = {(pos - start) / (end - start.toFloat)}
-    def next(key: NullWritable, value: IntArrayWritable): Boolean = {
+    def next(key: NullWritable, value: BaseSparseBinaryVector): Boolean = {
       if (pos != end) {
         val length = fileIn.readInt()
-        val arr = new Array[Writable](length)
-        (0 until length).foreach{idx =>
-          arr(idx) = new IntWritable(fileIn.readInt())
+        // we are forced to reuse the same record at this stage in any case, so only allocate a new array if we need to
+        val arr = {
+          if(value.colIds.length >= length)
+            value.colIds
+          else
+            new Array[Int](length)
         }
-        value.set(arr)
+        (0 until length).foreach{idx =>
+          arr(idx) = fileIn.readInt()
+        }
+        value.reset(arr, 0, length)
         true
       } else {
         false

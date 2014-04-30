@@ -168,6 +168,14 @@ extends SparseBinaryVector with Serializable {
     }
     sum
   }
+
+  override def clone(): BaseSparseBinaryVector = {
+    val arr = new Array[Int](size)
+    (startIdx until endIdx).foreach{idx =>
+      arr(idx - startIdx) = colIds(idx)
+    }
+    new BaseSparseBinaryVector(arr, 0, size)
+  }
 }
 
 
