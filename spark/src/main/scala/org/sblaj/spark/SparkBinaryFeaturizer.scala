@@ -132,17 +132,15 @@ object SparkBinaryFeaturizer {
 
 
     val (dictionaryRdd,dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
-    println("sample dictionaryRows:")
     dictionaryRdd.setName("limited dictionary RDD")
     dictionaryRdd.persist(storageLevel)
     dictionaryRdd.saveAsObjectFile(rddDir + "/dictionary")
-    dictionaryRdd.take(10).foreach{println}
 
     println("features below minCount = " + dictionaryAccs.tooLow.value)
     println("ok features = " + dictionaryAccs.ok.value)
     println("collisions = " + dictionaryAccs.collisions.value)
 
-    val dictionary = dictRddToInMem(dictionaryRdd)
+    val dictionary: GeneralCompleteDictionary[String] = dictRddToInMem(dictionaryRdd)
     println("unpersisting dictionary")
     dictionaryRdd.unpersist()
 

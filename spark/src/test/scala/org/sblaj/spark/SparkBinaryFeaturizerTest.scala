@@ -20,7 +20,7 @@ class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAft
     System.clearProperty("spark.driver.port")
   }
 
-  test("featurization") { SparkBinaryFeaturizerTest.withTestLock{
+  test("featurization") {
     println("beginning featurization in SparkFeaturizer")
     val matrixRDD = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
 
@@ -46,16 +46,16 @@ class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAft
         java.util.Arrays.binarySearch(row.colIds, Murmur64.hash64(id.toString)) should be >= (0)
     }
 
-  }}
+  }
 
-  test ("multi-featurize") { SparkBinaryFeaturizerTest.withTestLock{
+  test ("multi-featurize") {
 
     val m1 = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
     val m2 = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
 
     println(m1.dims.totalDims)
     println(m2.dims.totalDims)
-  }}
+  }
 
 
   test ("getHistogramCutoff") {
@@ -96,7 +96,7 @@ object SparkBinaryFeaturizerTest {
   }
 
   def silenceSparkLogging {
-    Seq("spark", "org.eclipse.jetty", "akka").map{
+    Seq("org.apache.spark", "org.eclipse.jetty", "akka", "org.apache.hadoop").map{
       loggerName =>
         val logger = Logger.getLogger(loggerName)
         val prevLevel = logger.getLevel()
