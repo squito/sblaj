@@ -36,14 +36,14 @@ object SparkCountFeaturizer {
                                      minCount: Int = 10,
                                      topFeatures: Int = 1e6.toInt)
                                    (rowIdAssigner: U => Long)
-                                   (featureExtractor: U => Traversable[(String, Int)]): (RDD[DictionaryRow], DictionaryBuildingAccumulatorBundle) = {
+                                   (featureExtractor: U => Traversable[(String, Float)]): (RDD[DictionaryCountRow], DictionaryBuildingAccumulatorBundle) = {
 
     val tooLowAcc = sc.accumulator(0l)
     val okAcc = sc.accumulator(0l)
     val collisionsInFinalFeatures = sc.accumulator(0l)
 
     // we could probably do the map-side combine more efficiently ourselves, since we can use a specialized map
-    val featureCountsRdd: RDD[(String, Int)] = data.flatMap {
+    val featureCountsRdd: RDD[(String, Float)] = data.flatMap {
       in =>
         if (SampleUtils.toUnit(Murmur64.hash64(rowIdAssigner(in).toString)) < dictionarySampleRate) {
           featureExtractor(in)
@@ -77,7 +77,7 @@ object SparkCountFeaturizer {
     val preciseMinCount = getHistogramCutoff(featureCountsHistogram, topFeatures)
     println("precise min count = " + preciseMinCount)
 
-    val dictionaryRdd: RDD[DictionaryRow] = featureCountsRdd.filter {
+    val dictionaryRdd: RDD[DictionaryCountRow] = featureCountsRdd.filter {
       case (feature, counts) =>
         if (counts > preciseMinCount) {
           okAcc += 1
@@ -94,12 +94,12 @@ object SparkCountFeaturizer {
         if (featuresAndCounts.size > 1) {
           collisionsInFinalFeatures += 1
         }
-        DictionaryRow(fHash, featuresAndCounts)
+        DictionaryCountRow(fHash, featuresAndCounts)
     }
     (dictionaryRdd, DictionaryBuildingAccumulatorBundle(okAcc, tooLowAcc, collisionsInFinalFeatures))
   }
 
-  def dictRddToInMem(rdd: RDD[DictionaryRow]): GeneralCompleteDictionary[String] = {
+  def dictRddToInMem(rdd: RDD[DictionaryCountRow]): GeneralCompleteDictionary[String] = {
 
     /* amazingly, even after filtering down to the top 1M features, we can still run out of memory
        when we try to collect, with 16GB.  Pretty insane if you think about it.
@@ -140,8 +140,7 @@ object SparkCountFeaturizer {
     )
   }
 
-  def scalableRowPerRecord[U: ClassTag](
-                                         data: RDD[U],
+  def scalableRowPerRecord[U: ClassTag](data: RDD[U],
                                          sc: SparkContext,
                                          rddDir: String,
                                          storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
@@ -150,7 +149,7 @@ object SparkCountFeaturizer {
                                          minCount: Int = 10,
                                          topFeatures: Int = 1e6.toInt)
                                        (rowIdAssigner: U => Long)
-                                       (featureExtractor: U => Traversable[(String,Int)]): EnumeratedSparseCountVectorRDD[String] = {
+                                       (featureExtractor: U => Traversable[(String,Float)]): EnumeratedSparseCountVectorRDD[String] = {
 
 
     val (dictionaryRdd, dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
@@ -251,7 +250,7 @@ object SparkCountFeaturizer {
    * find the cutoff to get the top *max* elements.
    * returns the first value that should *not* be included
    */
-  def getHistogramCutoff(histo: Array[(Int, Int)], max: Int): Int = {
+  def getHistogramCutoff(histo: Array[(Float, Int)], max: Int): Float = {
     //could potentially be refactored into a general histogram
     var total = 0
     var cutoff = histo(0)._1
@@ -287,7 +286,7 @@ private class TransformCntIter[U, G](
       val rowId = rowIdAssigner(u)
       val featureCnts = featureExtractor(u)
       val featureIds = new Array[Long](featureCnts.size)
-      val cnts = new Array[Int](featureCnts.size)
+      val cnts = new Array[Float](featureCnts.size)
       nnz += featureCnts.size
       partitionsRows += 1
       partitionNnz += featureCnts.size
@@ -313,7 +312,7 @@ private class TransformCntIter[U, G](
 
 private class SubsetTransformCntIter[U](
                                       val itr: Iterator[U],
-                                      val featureExtractor: U => Traversable[(String, Int)],
+                                      val featureExtractor: U => Traversable[(String, Float)],
                                       val nnz: Accumulator[Long],
                                       val codes: Long => Option[Int]
                                       ) extends FinalValueIterator[BaseSparseCountVector, (Long, Long)] {
@@ -342,3 +341,7 @@ private class SubsetTransformCntIter[U](
 
   override def finalValue = (partitionRows, partitionNnz)
 }
+
+case class DictionaryCountRow(hash: Long,
+                              namesAndCounts: Seq[(String, Float)])
+

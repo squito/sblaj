@@ -5,7 +5,7 @@ import scala.collection.Traversable
 /**
  * Created by matt on 4/28/14.
  */
-class SparseCountRowMatrix private(nMaxRows: Int, nMaxNonZeros: Int, nColumns: Int, columnIds: Array[Int], counts: Array[Int], rowStartIdxs: Array[Int])
+class SparseCountRowMatrix private(nMaxRows: Int, nMaxNonZeros: Int, nColumns: Int, columnIds: Array[Int], counts: Array[Float], rowStartIdxs: Array[Int])
   extends SparseMatrix
   with Traversable[SparseCountVector]
   with Serializable {
@@ -15,14 +15,14 @@ class SparseCountRowMatrix private(nMaxRows: Int, nMaxNonZeros: Int, nColumns: I
   val nCols: Int = nColumns
 
   val colIds: Array[Int] = columnIds
-  val cnts: Array[Int] = counts
+  val cnts: Array[Float] = counts
   val rowStartIdx: Array[Int] = rowStartIdxs
 
   var nRows: Int = 0
   var nnz: Int = 0
 
   def this(nMaxRows: Int, nMaxNonZeros: Int, nColumns: Int) {
-    this(nMaxRows, nMaxNonZeros, nColumns, new Array[Int](nMaxNonZeros), new Array[Int](nMaxNonZeros), new Array[Int](nMaxRows + 1))
+    this(nMaxRows, nMaxNonZeros, nColumns, new Array[Int](nMaxNonZeros), new Array[Float](nMaxNonZeros), new Array[Int](nMaxRows + 1))
   }
 
   override def multInto(y: Array[Float], r: Array[Float]): Unit = ???
