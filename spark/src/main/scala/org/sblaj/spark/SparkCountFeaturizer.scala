@@ -11,6 +11,12 @@ import scala.reflect.ClassTag
 import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, Long2IntOpenHashMap}
 import org.sblaj.MatrixDims
 
+trait CountFeatureExtractor[U] {
+  def init():Unit = {}
+  def apply(u: U): Traversable[(String, Int)]
+  def close():Unit = {}
+}
+
 object SparkCountFeaturizer {
 
 
@@ -29,27 +35,32 @@ object SparkCountFeaturizer {
   }
 
 
-  def dictionarySample[U: ClassTag](
-                                     data: RDD[U],
-                                     sc: SparkContext,
-                                     dictionarySampleRate: Double = 0.1,
-                                     minCount: Int = 10,
-                                     topFeatures: Int = 1e6.toInt)
+  def dictionarySample[U: ClassTag](data: RDD[U],
+                                    sc: SparkContext,
+                                    dictionarySampleRate: Double = 0.1,
+                                    minCount: Int = 10,
+                                    topFeatures: Int = 1e6.toInt)
                                    (rowIdAssigner: U => Long)
-                                   (featureExtractor: U => Traversable[(String, Int)]): (RDD[DictionaryRow], DictionaryBuildingAccumulatorBundle) = {
+                                   (featureExtractor: CountFeatureExtractor[U]): (RDD[DictionaryRow], DictionaryBuildingAccumulatorBundle) = {
 
     val tooLowAcc = sc.accumulator(0l)
     val okAcc = sc.accumulator(0l)
     val collisionsInFinalFeatures = sc.accumulator(0l)
 
     // we could probably do the map-side combine more efficiently ourselves, since we can use a specialized map
-    val featureCountsRdd: RDD[(String, Int)] = data.flatMap {
-      in =>
-        if (SampleUtils.toUnit(Murmur64.hash64(rowIdAssigner(in).toString)) < dictionarySampleRate) {
-          featureExtractor(in)
-        } else {
-          Seq()
+    val featureCountsRdd: RDD[(String, Int)] = data.mapPartitions {
+      it: Iterator[U] =>
+        featureExtractor.init()
+        val output = it.flatMap {
+          in: U =>
+            if (SampleUtils.toUnit(Murmur64.hash64(rowIdAssigner(in).toString)) < dictionarySampleRate) {
+              featureExtractor(in)
+            } else {
+              Seq()
+            }
         }
+        featureExtractor.close()
+        output
     }.reduceByKey {
       _ + _
     }
@@ -150,7 +161,7 @@ object SparkCountFeaturizer {
                                          minCount: Int = 10,
                                          topFeatures: Int = 1e6.toInt)
                                        (rowIdAssigner: U => Long)
-                                       (featureExtractor: U => Traversable[(String,Int)]): EnumeratedSparseCountVectorRDD[String] = {
+                                       (featureExtractor: CountFeatureExtractor[U]): EnumeratedSparseCountVectorRDD[String] = {
 
 
     val (dictionaryRdd, dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
@@ -196,11 +207,11 @@ object SparkCountFeaturizer {
    *
    */
   def accumulatorRowPerRecord[U: ClassTag, G](data: RDD[U],
-                                               sc: SparkContext,
-                                               storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
-                                               rddName: Option[String] = None)
+                                              sc: SparkContext,
+                                              storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
+                                              rddName: Option[String] = None)
                                              (rowIdAssigner: U => Long)
-                                             (featureExtractor: U => Traversable[(G,Int)]): LongRowSparseCountVectorRDD[G] = {
+                                             (featureExtractor: U => Traversable[(G, Int)]): LongRowSparseCountVectorRDD[G] = {
     val dictionary = sc.accumulable(new HashMapDictionaryCache[G]())(new HashMapDictionaryCacheAcc[G])
     val nnzAcc = sc.accumulator(0l)
 
@@ -273,12 +284,12 @@ object SparkCountFeaturizer {
 }
 
 private class TransformCntIter[U, G](
-                                   val itr: Iterator[U],
-                                   val rowIdAssigner: U => Long,
-                                   val featureExtractor: U => Traversable[(G, Int)],
-                                   val nnz: Accumulator[Long],
-                                   val dictionary: Accumulable[HashMapDictionaryCache[G], (G, Long)]
-                                   ) extends FinalValueIterator[LongSparseCountVectorWithRowId, (Long, Long)] {
+                                      val itr: Iterator[U],
+                                      val rowIdAssigner: U => Long,
+                                      val featureExtractor: U => Traversable[(G, Int)],
+                                      val nnz: Accumulator[Long],
+                                      val dictionary: Accumulable[HashMapDictionaryCache[G], (G, Long)]
+                                      ) extends FinalValueIterator[LongSparseCountVectorWithRowId, (Long, Long)] {
   var partitionsRows = 0l
   var partitionNnz = 0l
   val sub = itr.map {
@@ -293,7 +304,7 @@ private class TransformCntIter[U, G](
       partitionNnz += featureCnts.size
       var idx = 0
       featureCnts.foreach {
-        case(f,cnt) =>
+        case (f, cnt) =>
           val hash = Murmur64.hash64(f.toString)
           dictionary.localValue.addMapping(f, hash)
           featureIds(idx) = hash
@@ -311,15 +322,15 @@ private class TransformCntIter[U, G](
   override def finalValue = (partitionsRows, partitionNnz)
 }
 
-private class SubsetTransformCntIter[U](
-                                      val itr: Iterator[U],
-                                      val featureExtractor: U => Traversable[(String, Int)],
-                                      val nnz: Accumulator[Long],
-                                      val codes: Long => Option[Int]
-                                      ) extends FinalValueIterator[BaseSparseCountVector, (Long, Long)] {
+private class SubsetTransformCntIter[U](val itr: Iterator[U],
+                                         val featureExtractor: CountFeatureExtractor[U],
+                                         val nnz: Accumulator[Long],
+                                         val codes: Long => Option[Int]
+                                         ) extends FinalValueIterator[BaseSparseCountVector, (Long, Long)] {
   var partitionRows = 0l
   var partitionNnz = 0l
 
+  featureExtractor.init()
   val sub = itr.map {
     u =>
     //TODO rowId?
@@ -335,6 +346,7 @@ private class SubsetTransformCntIter[U](
       nnz += features.length
       new BaseSparseCountVector(features, cnts, 0, features.length)
   }
+  // featureExtractor.close()
 
   override def next = sub.next
 
