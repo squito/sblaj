@@ -302,11 +302,8 @@ private class BinarySubsetTransformIter[U](
   override def finalValue = (partitionRows, partitionNnz)
 }
 
-
-case class DictionaryRow(
-  hash: Long,
-  namesAndCounts: Seq[(String,Int)]
-)
+case class DictionaryRow(hash: Long,
+                         namesAndCounts: Seq[(String, Int)])
 
 case class DictionaryBuildingAccumulatorBundle(
   ok: Accumulator[Long],

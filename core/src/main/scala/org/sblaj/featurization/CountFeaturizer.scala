@@ -9,15 +9,15 @@ import org.sblaj._
 
 trait CountFeaturizer[T] {
   //TODO just like binary featurizer, this interface needs some work
-  def featurize(t: T, dictionary: DictionaryCache[String]): (Long, Array[Long], Array[Int], Int, Int)
+  def featurize(t: T, dictionary: DictionaryCache[String]): (Long, Array[Long], Array[Float], Int, Int)
 }
 
 trait MurmurCountFeaturizer[T] extends CountFeaturizer[T] {
 
   val buffer = new Array[Long](100000)
-  val counts = new Array[Int](100000)
+  val counts = new Array[Float](100000)
 
-  def extractor(t: T): Map[String, Int]
+  def extractor(t: T): Map[String, Float]
 
   def getId(t: T): Long
 
@@ -53,7 +53,7 @@ object CountFeaturizerHelper {
     val (id, cols, cnts, startIdx, endIdx) = featurizer.featurize(t, dictionary)
     val n = endIdx - startIdx
     val theCols = new Array[Long](n)
-    val theCnts = new Array[Int](n)
+    val theCnts = new Array[Float](n)
     System.arraycopy(cols, startIdx, theCols, 0, n)
     System.arraycopy(cnts, startIdx, theCnts, 0, n)
     matrixCounts +=(theCols, 0, n)

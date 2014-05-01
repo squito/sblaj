@@ -220,11 +220,11 @@ class GenericSparseBinaryVectorToSparseCountVector(var binaryVector: SparseBinar
   with BinaryVectorAsCountVector[SparseBinaryVector]
 {
 
-  override def foreach[U](f: MTuple2[Int,Int] => U) {
-    val pair = new MTuple2[Int,Int](0,0)
+  override def foreach[U](f: MTuple2[Int,Float] => U) {
+    val pair = new MTuple2[Int,Float](0,0f)
     binaryVector.foreach{colId =>
       pair._1 = colId
-      pair._2 = 1
+      pair._2 = 1f
       f(pair)
     }
   }
@@ -232,5 +232,5 @@ class GenericSparseBinaryVectorToSparseCountVector(var binaryVector: SparseBinar
 
   override def nnz: Int = binaryVector.nnz
 
-  override def get(col: Int): Int = binaryVector.get(col)
+  override def get(col: Int): Float = binaryVector.get(col).toFloat
 }
