@@ -6,11 +6,11 @@ import org.sblaj.MatrixDims
 import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
 import org.apache.log4j.{Logger, Level}
 
-class SparkFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
+class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
   var sc : SparkContext = null
   before {
-    SparkFeaturizerTest.silenceSparkLogging
+    SparkBinaryFeaturizerTest.silenceSparkLogging
     sc = new SparkContext("local[4]", "featurization test")
   }
 
@@ -22,7 +22,7 @@ class SparkFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test("featurization") {
     println("beginning featurization in SparkFeaturizer")
-    val matrixRDD = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
+    val matrixRDD = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
 
     //check dims
 //    println(matrixRDD.dims.totalDims)
@@ -50,8 +50,8 @@ class SparkFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test ("multi-featurize") {
 
-    val m1 = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
-    val m2 = SparkFeaturizerTest.makeSimpleMatrixRDD(sc)
+    val m1 = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
+    val m2 = SparkBinaryFeaturizerTest.makeSimpleBinaryMatrixRDD(sc)
 
     println(m1.dims.totalDims)
     println(m2.dims.totalDims)
@@ -60,28 +60,28 @@ class SparkFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
   test ("getHistogramCutoff") {
     val histo = Array((20,1),(19,4), (10, 100), (9,500))
-    SparkFeaturizer.getHistogramCutoff(histo, 1) should be (19)
-    SparkFeaturizer.getHistogramCutoff(histo, 2) should be (19)
-    SparkFeaturizer.getHistogramCutoff(histo, 4) should be (19)
-    SparkFeaturizer.getHistogramCutoff(histo, 5) should be (10)
-    SparkFeaturizer.getHistogramCutoff(histo, 104) should be (10)
-    SparkFeaturizer.getHistogramCutoff(histo, 105) should be (9)
-    SparkFeaturizer.getHistogramCutoff(histo, 605) should be (8)
-    SparkFeaturizer.getHistogramCutoff(histo, 700) should be (8)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 1) should be (19)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 2) should be (19)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 4) should be (19)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 5) should be (10)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 104) should be (10)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 105) should be (9)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 605) should be (8)
+    SparkBinaryFeaturizer.getHistogramCutoff(histo, 700) should be (8)
   }
 
 }
 
-object SparkFeaturizerTest {
+object SparkBinaryFeaturizerTest {
 
   val testLock = new Object()
   def withTestLock(body:  => Unit) {
     testLock.synchronized(body)
   }
 
-  def makeSimpleMatrixRDD(sc: SparkContext) : LongRowSparseVectorRDD[String] = {
+  def makeSimpleBinaryMatrixRDD(sc: SparkContext) : LongRowSparseBinaryVectorRDD[String] = {
     val origData = sc.parallelize(1 to 1e3.toInt, 20)
-    val matrixRDD = SparkFeaturizer.accumulatorRowPerRecord(origData, sc) {_.toLong} { i =>
+    val matrixRDD = SparkBinaryFeaturizer.accumulatorRowPerRecord(origData, sc) {_.toLong} { i =>
       var l = List[String]()
       l +:=  i.toString
       if (i % 2 == 0)
