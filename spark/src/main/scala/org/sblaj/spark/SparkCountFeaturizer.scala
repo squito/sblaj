@@ -12,9 +12,11 @@ import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, Long2IntOpenHashMap}
 import org.sblaj.MatrixDims
 
 trait CountFeatureExtractor[U] {
-  def init():Unit = {}
-  def apply(u: U): Traversable[(String, Int)]
-  def close():Unit = {}
+  def init(): Unit = {}
+
+  def apply(u: U): Traversable[(String, Float)]
+
+  def close(): Unit = {}
 }
 
 object SparkCountFeaturizer {
@@ -41,14 +43,14 @@ object SparkCountFeaturizer {
                                     minCount: Int = 10,
                                     topFeatures: Int = 1e6.toInt)
                                    (rowIdAssigner: U => Long)
-                                   (featureExtractor: CountFeatureExtractor[U]): (RDD[DictionaryRow], DictionaryBuildingAccumulatorBundle) = {
+                                   (featureExtractor: CountFeatureExtractor[U]): (RDD[DictionaryCountRow], DictionaryBuildingAccumulatorBundle) = {
 
     val tooLowAcc = sc.accumulator(0l)
     val okAcc = sc.accumulator(0l)
     val collisionsInFinalFeatures = sc.accumulator(0l)
 
     // we could probably do the map-side combine more efficiently ourselves, since we can use a specialized map
-    val featureCountsRdd: RDD[(String, Int)] = data.mapPartitions {
+    val featureCountsRdd: RDD[(String, Float)] = data.mapPartitions {
       it: Iterator[U] =>
         featureExtractor.init()
         val output = it.flatMap {
@@ -63,8 +65,7 @@ object SparkCountFeaturizer {
         output
     }.reduceByKey {
       _ + _
-    }
-      .filter {
+    }.filter {
       case (feature, counts) =>
         if (counts >= minCount) {
           true
@@ -78,8 +79,7 @@ object SparkCountFeaturizer {
     //we could probably do this approximately, with larger buckets, but this should still scale pretty well
     val featureCountsHistogram = featureCountsRdd.map {
       case (feature, counts) => (counts, 1)
-    }.
-      reduceByKey {
+    }.reduceByKey {
       _ + _
     }.collect().sortBy {
       -_._1
@@ -152,212 +152,207 @@ object SparkCountFeaturizer {
   }
 
   def scalableRowPerRecord[U: ClassTag](data: RDD[U],
-                                         sc: SparkContext,
-                                         rddDir: String,
-                                         storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
-                                         rddName: Option[String] = None,
-                                         dictionarySampleRate: Double = 0.1,
-                                         minCount: Int = 10,
-                                         topFeatures: Int = 1e6.toInt)
+                                        sc: SparkContext,
+                                        rddDir: String,
+                                        storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
+                                        rddName: Option[String] = None,
+                                        dictionarySampleRate: Double = 0.1,
+                                        minCount: Int = 10,
+                                        topFeatures: Int = 1e6.toInt)
                                        (rowIdAssigner: U => Long)
-<<<<<<< HEAD
                                        (featureExtractor: CountFeatureExtractor[U]): EnumeratedSparseCountVectorRDD[String] = {
-=======
-                                       (featureExtractor: U => Traversable[(String,Float)]): EnumeratedSparseCountVectorRDD[String] = {
->>>>>>> matt/sparse_counts
 
-
-    val (dictionaryRdd, dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
-    println("sample dictionaryRows:")
-    dictionaryRdd.setName("limited dictionary RDD")
-    dictionaryRdd.persist(storageLevel)
-    dictionaryRdd.saveAsObjectFile(rddDir + "/dictionary")
-    dictionaryRdd.take(10).foreach {
-      println
-    }
-
-    println("features below minCount = " + dictionaryAccs.tooLow.value)
-    println("ok features = " + dictionaryAccs.ok.value)
-    println("collisions = " + dictionaryAccs.collisions.value)
-
-    val dictionary = dictRddToInMem(dictionaryRdd)
-    println("unpersisting dictionary")
-    dictionaryRdd.unpersist()
-
-    val bcHashToECode = sc.broadcast(new HashToEnum(dictionary.enumerated))
-    val nnzAcc = sc.accumulator(0l)
-    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc) {
-      itr => new SubsetTransformCntIter[U](itr, featureExtractor, nnzAcc, bcHashToECode.value)
-    }
-    rddName.foreach {
-      vectorRdd.setName
-    }
-    vectorRdd.persist(storageLevel)
-    vectorRdd.saveAsObjectFile(rddDir + "/enumerated_vectors")
-    val nRows = vectorRdd.count
-    val nnz = nnzAcc.value
-
-    val dims = RowMatrixPartitionDims(totalDims = new MatrixDims(nRows, dictionary.reverseEnum.length, nnz), partitionDims = partitionDims.value)
-    new EnumeratedSparseCountVectorRDD[String](vectorRdd, dims, dictionary, dictionary)
-  }
-
-
-  /**
-   * Convert an RDD into a SparseCountMatrix.
-   *
-   * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
-   * will fit in memory.
-   *
-   */
-  def accumulatorRowPerRecord[U: ClassTag, G](data: RDD[U],
-                                              sc: SparkContext,
-                                              storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
-                                              rddName: Option[String] = None)
-                                             (rowIdAssigner: U => Long)
-                                             (featureExtractor: U => Traversable[(G, Int)]): LongRowSparseCountVectorRDD[G] = {
-    val dictionary = sc.accumulable(new HashMapDictionaryCache[G]())(new HashMapDictionaryCacheAcc[G])
-    val nnzAcc = sc.accumulator(0l)
-
-    val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc) {
-      itr => new TransformCntIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)
-    }
-    rddName.foreach {
-      n => vectorRdd.setName(n)
-    }
-    vectorRdd.persist(storageLevel)
-    val nRows = vectorRdd.count
-    val nnz = nnzAcc.value
-    val colDictionary = dictionary.value
-    val nCols = colDictionary.size
-    val matrixDims = new MatrixDims(nRows, nCols, nnz)
-    val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
-    println("creating rdd matrix w/ dims = " + fullDims.totalDims)
-    new LongRowSparseCountVectorRDD[G](vectorRdd, fullDims, colDictionary)
-  }
-
-
-  def mapWithPartitionDims[A: ClassTag, B: ClassTag](rdd: RDD[A],
-                                                     sc: SparkContext)(
-                                                      transform: Iterator[A] => (FinalValueIterator[B, (Long, Long)])
-                                                      ): (RDD[B], Accumulable[mutable.HashMap[Int, (Long, Long)], _]) = {
-    val partitionDims = sc.accumulableCollection(mutable.HashMap[Int, (Long, Long)]())
-    val transformedRDD = rdd.mapPartitionsWithIndex {
-      case (partIdx, itr) =>
-        val finalValIterator = transform(itr)
-        new Iterator[B]() {
-          def next = finalValIterator.next
-
-          def hasNext = {
-            val r = finalValIterator.hasNext
-            if (!r) {
-              //now store our accumulator updates
-              partitionDims.localValue += (partIdx -> finalValIterator.finalValue)
-            }
-            r
-          }
-        }
-    }
-
-    (transformedRDD, partitionDims)
-  }
-
-  /**
-   * find the cutoff to get the top *max* elements.
-   * returns the first value that should *not* be included
-   */
-  def getHistogramCutoff(histo: Array[(Float, Int)], max: Int): Float = {
-    //could potentially be refactored into a general histogram
-    var total = 0
-    var cutoff = histo(0)._1
-    val itr = histo.iterator
-    while (itr.hasNext && total <= max) {
-      val (v, counts) = itr.next()
-      total += counts
-      cutoff = v
-    }
-    if (total <= max) //we've read everything, still haven't gone over the limit.  take everything
-      cutoff -= 1
-    cutoff
-  }
-
-  def truncate(s: String, l: Int): String = {
-    if (s.length > l) s.substring(0, l)
-    else s
-  }
-}
-
-private class TransformCntIter[U, G](
-                                      val itr: Iterator[U],
-                                      val rowIdAssigner: U => Long,
-                                      val featureExtractor: U => Traversable[(G, Int)],
-                                      val nnz: Accumulator[Long],
-                                      val dictionary: Accumulable[HashMapDictionaryCache[G], (G, Long)]
-                                      ) extends FinalValueIterator[LongSparseCountVectorWithRowId, (Long, Long)] {
-  var partitionsRows = 0l
-  var partitionNnz = 0l
-  val sub = itr.map {
-    u =>
-    //TODO save rowId in a dictionary also??
-      val rowId = rowIdAssigner(u)
-      val featureCnts = featureExtractor(u)
-      val featureIds = new Array[Long](featureCnts.size)
-      val cnts = new Array[Float](featureCnts.size)
-      nnz += featureCnts.size
-      partitionsRows += 1
-      partitionNnz += featureCnts.size
-      var idx = 0
-      featureCnts.foreach {
-        case (f, cnt) =>
-          val hash = Murmur64.hash64(f.toString)
-          dictionary.localValue.addMapping(f, hash)
-          featureIds(idx) = hash
-          cnts(idx) = cnt
-          idx += 1
+      val (dictionaryRdd, dictionaryAccs) = dictionarySample(data, sc, dictionarySampleRate, minCount, topFeatures)(rowIdAssigner)(featureExtractor)
+      println("sample dictionaryRows:")
+      dictionaryRdd.setName("limited dictionary RDD")
+      dictionaryRdd.persist(storageLevel)
+      dictionaryRdd.saveAsObjectFile(rddDir + "/dictionary")
+      dictionaryRdd.take(10).foreach {
+        println
       }
-      Sorting.sortParallel(featureIds, cnts)
-      new LongSparseCountVectorWithRowId(rowId, featureIds, cnts, 0, featureIds.length)
+
+      println("features below minCount = " + dictionaryAccs.tooLow.value)
+      println("ok features = " + dictionaryAccs.ok.value)
+      println("collisions = " + dictionaryAccs.collisions.value)
+
+      val dictionary = dictRddToInMem(dictionaryRdd)
+      println("unpersisting dictionary")
+      dictionaryRdd.unpersist()
+
+      val bcHashToECode = sc.broadcast(new HashToEnum(dictionary.enumerated))
+      val nnzAcc = sc.accumulator(0l)
+      val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc) {
+        itr => new SubsetTransformCntIter[U](itr, featureExtractor, nnzAcc, bcHashToECode.value)
+      }
+      rddName.foreach {
+        vectorRdd.setName
+      }
+      vectorRdd.persist(storageLevel)
+      vectorRdd.saveAsObjectFile(rddDir + "/enumerated_vectors")
+      val nRows = vectorRdd.count
+      val nnz = nnzAcc.value
+
+      val dims = RowMatrixPartitionDims(totalDims = new MatrixDims(nRows, dictionary.reverseEnum.length, nnz), partitionDims = partitionDims.value)
+      new EnumeratedSparseCountVectorRDD[String](vectorRdd, dims, dictionary, dictionary)
+    }
+
+
+    /**
+     * Convert an RDD into a SparseCountMatrix.
+     *
+     * This assumes that each record in the RDD corresponds to one row in matrix, and that the entire dictionary
+     * will fit in memory.
+     *
+     */
+    def accumulatorRowPerRecord[U: ClassTag, G](data: RDD[U],
+                                                sc: SparkContext,
+                                                storageLevel: StorageLevel = StorageLevel.MEMORY_ONLY,
+                                                rddName: Option[String] = None)
+                                               (rowIdAssigner: U => Long)
+                                               (featureExtractor: U => Traversable[(G, Int)]): LongRowSparseCountVectorRDD[G] = {
+      val dictionary = sc.accumulable(new HashMapDictionaryCache[G]())(new HashMapDictionaryCacheAcc[G])
+      val nnzAcc = sc.accumulator(0l)
+
+      val (vectorRdd, partitionDims) = mapWithPartitionDims(data, sc) {
+        itr => new TransformCntIter(itr, rowIdAssigner, featureExtractor, nnzAcc, dictionary)
+      }
+      rddName.foreach {
+        n => vectorRdd.setName(n)
+      }
+      vectorRdd.persist(storageLevel)
+      val nRows = vectorRdd.count
+      val nnz = nnzAcc.value
+      val colDictionary = dictionary.value
+      val nCols = colDictionary.size
+      val matrixDims = new MatrixDims(nRows, nCols, nnz)
+      val fullDims = RowMatrixPartitionDims(totalDims = matrixDims, partitionDims = partitionDims.value)
+      println("creating rdd matrix w/ dims = " + fullDims.totalDims)
+      new LongRowSparseCountVectorRDD[G](vectorRdd, fullDims, colDictionary)
+    }
+
+
+    def mapWithPartitionDims[A: ClassTag, B: ClassTag](rdd: RDD[A],
+                                                       sc: SparkContext)(
+                                                        transform: Iterator[A] => (FinalValueIterator[B, (Long, Long)])
+                                                        ): (RDD[B], Accumulable[mutable.HashMap[Int, (Long, Long)], _]) = {
+      val partitionDims = sc.accumulableCollection(mutable.HashMap[Int, (Long, Long)]())
+      val transformedRDD = rdd.mapPartitionsWithIndex {
+        case (partIdx, itr) =>
+          val finalValIterator = transform(itr)
+          new Iterator[B]() {
+            def next = finalValIterator.next
+
+            def hasNext = {
+              val r = finalValIterator.hasNext
+              if (!r) {
+                //now store our accumulator updates
+                partitionDims.localValue += (partIdx -> finalValIterator.finalValue)
+              }
+              r
+            }
+          }
+      }
+
+      (transformedRDD, partitionDims)
+    }
+
+    /**
+     * find the cutoff to get the top *max* elements.
+     * returns the first value that should *not* be included
+     */
+    def getHistogramCutoff(histo: Array[(Float, Int)], max: Int): Float = {
+      //could potentially be refactored into a general histogram
+      var total = 0
+      var cutoff = histo(0)._1
+      val itr = histo.iterator
+      while (itr.hasNext && total <= max) {
+        val (v, counts) = itr.next()
+        total += counts
+        cutoff = v
+      }
+      if (total <= max) //we've read everything, still haven't gone over the limit.  take everything
+        cutoff -= 1
+      cutoff
+    }
+
+    def truncate(s: String, l: Int): String = {
+      if (s.length > l) s.substring(0, l)
+      else s
+    }
   }
 
-  override def next = sub.next
+  private class TransformCntIter[U, G](
+                                        val itr: Iterator[U],
+                                        val rowIdAssigner: U => Long,
+                                        val featureExtractor: U => Traversable[(G, Int)],
+                                        val nnz: Accumulator[Long],
+                                        val dictionary: Accumulable[HashMapDictionaryCache[G], (G, Long)]
+                                        ) extends FinalValueIterator[LongSparseCountVectorWithRowId, (Long, Long)] {
+    var partitionsRows = 0l
+    var partitionNnz = 0l
+    val sub = itr.map {
+      u =>
+      //TODO save rowId in a dictionary also??
+        val rowId = rowIdAssigner(u)
+        val featureCnts = featureExtractor(u)
+        val featureIds = new Array[Long](featureCnts.size)
+        val cnts = new Array[Float](featureCnts.size)
+        nnz += featureCnts.size
+        partitionsRows += 1
+        partitionNnz += featureCnts.size
+        var idx = 0
+        featureCnts.foreach {
+          case (f, cnt) =>
+            val hash = Murmur64.hash64(f.toString)
+            dictionary.localValue.addMapping(f, hash)
+            featureIds(idx) = hash
+            cnts(idx) = cnt
+            idx += 1
+        }
+        Sorting.sortParallel(featureIds, cnts)
+        new LongSparseCountVectorWithRowId(rowId, featureIds, cnts, 0, featureIds.length)
+    }
 
-  override def hasNext = sub.hasNext
+    override def next = sub.next
 
-  override def finalValue = (partitionsRows, partitionNnz)
-}
+    override def hasNext = sub.hasNext
 
-private class SubsetTransformCntIter[U](val itr: Iterator[U],
-                                         val featureExtractor: CountFeatureExtractor[U],
-                                         val nnz: Accumulator[Long],
-                                         val codes: Long => Option[Int]
-                                         ) extends FinalValueIterator[BaseSparseCountVector, (Long, Long)] {
-  var partitionRows = 0l
-  var partitionNnz = 0l
-
-  featureExtractor.init()
-  val sub = itr.map {
-    u =>
-    //TODO rowId?
-      val (featureSeq, cntSeq) = featureExtractor(u).flatMap {
-        case (f, cnt) => codes(Murmur64.hash64(f)).map(_ -> cnt)
-      }.unzip
-      val features = featureSeq.toArray
-      val cnts = cntSeq.toArray
-      Sorting.sortParallel(features, cnts)
-
-      partitionRows += 1
-      partitionNnz += features.length
-      nnz += features.length
-      new BaseSparseCountVector(features, cnts, 0, features.length)
+    override def finalValue = (partitionsRows, partitionNnz)
   }
-  // featureExtractor.close()
 
-  override def next = sub.next
+  private class SubsetTransformCntIter[U](val itr: Iterator[U],
+                                          val featureExtractor: CountFeatureExtractor[U],
+                                          val nnz: Accumulator[Long],
+                                          val codes: Long => Option[Int]
+                                           ) extends FinalValueIterator[BaseSparseCountVector, (Long, Long)] {
+    var partitionRows = 0l
+    var partitionNnz = 0l
 
-  override def hasNext = sub.hasNext
+    featureExtractor.init()
+    val sub = itr.map {
+      u =>
+      //TODO rowId?
+        val (featureSeq, cntSeq) = featureExtractor(u).flatMap {
+          case (f, cnt) => codes(Murmur64.hash64(f)).map(_ -> cnt)
+        }.unzip
+        val features = featureSeq.toArray
+        val cnts = cntSeq.toArray
+        Sorting.sortParallel(features, cnts)
 
-  override def finalValue = (partitionRows, partitionNnz)
-}
+        partitionRows += 1
+        partitionNnz += features.length
+        nnz += features.length
+        new BaseSparseCountVector(features, cnts, 0, features.length)
+    }
+    // featureExtractor.close()
 
-case class DictionaryCountRow(hash: Long,
-                              namesAndCounts: Seq[(String, Float)])
+    override def next = sub.next
+
+    override def hasNext = sub.hasNext
+
+    override def finalValue = (partitionRows, partitionNnz)
+  }
+
+  case class DictionaryCountRow(hash: Long,
+                                namesAndCounts: Seq[(String, Float)])
 

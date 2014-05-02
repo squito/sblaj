@@ -205,15 +205,15 @@ class SparseCountArrayOutputFormat extends FileOutputFormat[NullWritable, BaseSp
       out.writeInt(value.size)
       (value.startIdx until value.endIdx).foreach{idx =>
         out.writeInt(value.colIds(idx))
-        out.writeInt(value.cnts(idx))
+        out.writeFloat(value.cnts(idx))
       }
     }
   }
 }
 
 class SparseCountArrayInputFormat extends FileInputFormat[NullWritable, BaseSparseCountVector] {
-  def getRecordReader(
-                       split: InputSplit,
+
+  def getRecordReader(split: InputSplit,
                        job: JobConf,
                        reporter:Reporter
                        ): RecordReader[NullWritable,BaseSparseCountVector] = {
@@ -236,7 +236,7 @@ class SparseCountArrayInputFormat extends FileInputFormat[NullWritable, BaseSpar
 
     def close() { fileIn.close() }
     def createKey() = {NullWritable.get()}
-    def createValue() = {new BaseSparseCountVector(new Array[Int](100), new Array[Int](100), 0, 0)}
+    def createValue() = {new BaseSparseCountVector(new Array[Int](100), new Array[Float](100), 0, 0)}
     def getPos(): Long = pos
     def getProgress(): Float = {(pos - start) / (end - start.toFloat)}
     def next(key: NullWritable, value: BaseSparseCountVector): Boolean = {
@@ -251,13 +251,13 @@ class SparseCountArrayInputFormat extends FileInputFormat[NullWritable, BaseSpar
         }
         val cnts = {
           if(value.colIds.length >= length)
-            value.colIds
+            value.cnts
           else
-            new Array[Int](length)
+            new Array[Float](length)
         }
         (0 until length).foreach{idx =>
           arr(idx) = fileIn.readInt()
-          cnts(idx) = fileIn.readInt()
+          cnts(idx) = fileIn.readFloat()
         }
         value.reset(arr, cnts, 0, length)
         true
