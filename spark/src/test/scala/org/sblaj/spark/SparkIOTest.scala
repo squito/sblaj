@@ -14,7 +14,7 @@ class SparkIOTest extends FunSuite with Matchers with BeforeAndAfter {
 
   var sc : SparkContext = null
   before {
-    SparkFeaturizerTest.silenceSparkLogging
+    SparkBinaryFeaturizerTest.silenceSparkLogging
     sc = new SparkContext("local[4]", "spark io test")
   }
 
@@ -28,7 +28,7 @@ class SparkIOTest extends FunSuite with Matchers with BeforeAndAfter {
   test("io round trip") {
 
     val rawRdd = sc.parallelize(1 to 1e4.toInt)
-    val featurized = SparkFeaturizer.scalableRowPerRecord(rawRdd, sc, "test/output/spark_io_test/init", minCount = 2){x =>
+    val featurized = SparkBinaryFeaturizer.scalableRowPerRecord(rawRdd, sc, "test/output/spark_io_test/init", minCount = 2){x =>
       x
     }{ x =>
       val rng = new Random()
@@ -37,7 +37,7 @@ class SparkIOTest extends FunSuite with Matchers with BeforeAndAfter {
       (0 until count).map{_ => genChar + genChar}
     }
 
-    SparkIO.saveEnumeratedSparseVectorRDD(featurized, "test/output/spark_io_test/rdd", "test/output/spark_io_test/local")
+    SparkIO.saveEnumeratedSparseBinaryVectorRDD(featurized, "test/output/spark_io_test/rdd", "test/output/spark_io_test/local")
 
 
     val loadedRdd = SparkIO.loadSparseBinaryVectorRdd(sc, path = "test/output/spark_io_test/rdd/vectors")

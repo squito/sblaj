@@ -77,15 +77,15 @@ class SparkCountFeaturizerTest extends FunSuite with Matchers with BeforeAndAfte
 
 
   test ("getHistogramCutoff") {
-    val histo = Array((20,1),(19,4), (10, 100), (9,500))
-    SparkCountFeaturizer.getHistogramCutoff(histo, 1) should be (19)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 2) should be (19)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 4) should be (19)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 5) should be (10)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 104) should be (10)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 105) should be (9)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 605) should be (8)
-    SparkCountFeaturizer.getHistogramCutoff(histo, 700) should be (8)
+    val histo = Array((20f,1),(19f,4), (10f, 100), (9f,500))
+    SparkCountFeaturizer.getHistogramCutoff(histo, 1) should be (19f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 2) should be (19f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 4) should be (19f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 5) should be (10f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 104) should be (10f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 105) should be (9f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 605) should be (8f)
+    SparkCountFeaturizer.getHistogramCutoff(histo, 700) should be (8f)
   }
 
 }
