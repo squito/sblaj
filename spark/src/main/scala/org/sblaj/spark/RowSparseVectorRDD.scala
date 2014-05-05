@@ -10,6 +10,7 @@ import featurization.FeatureEnumeration
 import org.sblaj.MatrixDims
 import org.apache.spark.SparkContext._
 import org.apache.spark.broadcast.Broadcast
+import org.sblaj.io.RowMatrixPartitionDims
 
 trait RowSparseVectorRDD[G] {
   def colDictionary: DictionaryCache[G]
@@ -46,8 +47,6 @@ trait EnumeratedRowSparseVectorRDD[G] extends RowSparseVectorRDD[G] {
 
   def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) : EnumeratedRowSparseVectorRDD[G]
 }
-
-case class RowMatrixPartitionDims(val totalDims: MatrixDims, val partitionDims: Map[Int, (Long,Long)])
 
 class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRowId],
                                 val matrixDims: RowMatrixPartitionDims,

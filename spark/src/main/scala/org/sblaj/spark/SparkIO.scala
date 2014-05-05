@@ -6,7 +6,7 @@ import org.sblaj.BaseSparseBinaryVector
 import org.apache.spark.rdd.RDD
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapred._
-import org.sblaj.io.DictionaryIO
+import org.sblaj.io.{RowMatrixPartitionDims, DictionaryIO}
 import java.io.{DataOutputStream, File, PrintWriter}
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.util.Progressable
