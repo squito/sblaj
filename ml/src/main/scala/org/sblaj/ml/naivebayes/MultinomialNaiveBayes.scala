@@ -8,8 +8,8 @@ import org.sblaj.ml.samplers.MultinomialSampler
  *
  */
 class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int) {
-  val logTheta: Array[Array[Float]] = createSquareArray(nFeatures, nClasses)
-  val numCounts: Array[Array[Float]] = createSquareArray(nFeatures, nClasses)
+  val logTheta: Array[Array[Float]] = createRectArray(nFeatures, nClasses)
+  val numCounts: Array[Array[Float]] = createRectArray(nFeatures, nClasses)
   val denomCounts : Array[Float] = new Array[Float](nClasses)
 
   /**

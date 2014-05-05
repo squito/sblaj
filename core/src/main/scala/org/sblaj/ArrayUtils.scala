@@ -69,7 +69,7 @@ object ArrayUtils {
   }
 
 
-  def createSquareArray(nRows: Int, nCols: Int) : Array[Array[Float]] = {
+  def createRectArray(nRows: Int, nCols: Int) : Array[Array[Float]] = {
     val result: Array[Array[Float]] = new Array[Array[Float]](nRows)
     var idx = 0
     while (idx < result.length) {
