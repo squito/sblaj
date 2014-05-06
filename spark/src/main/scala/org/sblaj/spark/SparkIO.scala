@@ -24,7 +24,8 @@ object SparkIO {
     new File(localDir).mkdirs()
 
     val dictionaryPath = localDir + "/dictionary"
-    DictionaryIO.writeDictionary(rdd.colDictionary, dictionaryPath)
+    val d = rdd.colDictionary.asInstanceOf[GeneralCompleteDictionary[String]]
+    DictionaryIO.writeEnumeration(d.reverseEnum, d.elems.get _, dictionaryPath)
 
     val dimsPath = localDir + "/dims"
     saveMatrixDims(rdd.dims, dimsPath)
