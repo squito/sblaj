@@ -10,6 +10,7 @@ import org.sblaj.io.{RowMatrixPartitionDims, DictionaryIO}
 import java.io.{DataOutputStream, File, PrintWriter}
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.util.Progressable
+import org.sblaj.featurization.GeneralCompleteDictionary
 
 
 /**

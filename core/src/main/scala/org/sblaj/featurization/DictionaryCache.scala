@@ -129,7 +129,7 @@ class GeneralCompleteDictionary[G](
   val elems: Long2ObjectMap[Seq[G]],
   val enumerated: Long2IntMap,
   val reverseEnum: Array[Long]
-) extends DictionaryCache[G] with FeatureEnumeration {
+) extends DictionaryCache[G] with FeatureEnumeration with Serializable {
 
   enumerated.defaultReturnValue(-1)
 

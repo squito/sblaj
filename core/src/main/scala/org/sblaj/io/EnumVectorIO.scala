@@ -16,6 +16,8 @@ object EnumVectorIO {
     val nCols = in.next().toInt
     val nnz = in.next().toInt
 
+    require(in.next()=="")
+
     //next its repeating sets of (nrows, nnz) per file
     var partitionDims = Map[Int,(Long,Long)]()
     in.grouped(4).foreach{partitionLines =>
@@ -37,7 +39,7 @@ object EnumVectorIO {
     r
   }
 
-  def loadLimitedMatrix(dir: File, maxSizeBytes: Long = 2e20.toLong): (Array[String], SparseBinaryRowMatrix) = {
+  def loadLimitedMatrix(dir: File, maxSizeBytes: Long = 2e9.toLong): (Array[String], SparseBinaryRowMatrix) = {
 
     //TODO TONS of duplication w/ VectorIO ... need to refactor
 
@@ -60,28 +62,36 @@ object EnumVectorIO {
     println(s"will use up to partition ${partsToLoad.last._1}, using $usedSpace memory.  $approxDictSpaceBytes for dictionary")
 
     val (totalRows, totalNnz) = partsToLoad.foldLeft((0l,0l)){case(prev, (_,(nRows, nnz))) => (prev._1 + nRows, prev._2 + nnz)}
+    println("creating matrix of size " + totalRows.toInt + "," + totalNnz.toInt + "," + nCols)
     val matrix = new SparseBinaryRowMatrix(totalRows.toInt, totalNnz.toInt, nCols)
     var nextRow = 0
     var nextNnz = 0
+    val vectorDir = new File(dir, "vectors")
     partsToLoad.foreach{case(part, (nRows, nnz)) =>
-      val nnzRead = appendOneVectorFile(new File(dir, "part-%05d".format(part)), matrix, nextRow, nextNnz, nRows.toInt)
-      assert(nnzRead == nnz.toInt)
+      val f = new File(vectorDir, "part-%05d".format(part))
+      println("reading " + f + ", expecting " + nRows + " rows.  Starting from " + nextNnz + ", expecting to read " + nnz)
+      val initialNnzPos = nextNnz
+      nextNnz = appendOneVectorFile(f, matrix, nextRow, nextNnz, nRows.toInt)
+      val nnzRead = nextNnz - initialNnzPos
+      assert(nnzRead == nnz.toInt, s"$nnzRead read entries was not equal to expected ${nnz.toInt}")
       nextRow += nRows.toInt
-      nextNnz += nnzRead
     }
+    matrix.setSize(nextRow, nextNnz)
     (dictionary, matrix)
   }
 
   def appendOneVectorFile(file: File, matrix: SparseBinaryRowMatrix, rowPos: Int, nnzPos: Int, rowsToRead: Int): Int = {
     val in = new DataInputStream(new FastBufferedInputStream(new FileInputStream(file)))
     var nextRowPos = rowPos
-    var nRead = 0
+    var nextNnzPos = nnzPos
     (0 until rowsToRead).foreach{idx =>
-      nRead += VectorIO.readOneSparseBinaryVector(in, matrix.colIds, nextRowPos)
+      matrix.rowStartIdx(nextRowPos) = nextNnzPos
+      nextNnzPos = VectorIO.readOneSparseBinaryVector(in, matrix.colIds, nextNnzPos)
       nextRowPos += 1
     }
+    matrix.rowStartIdx(nextRowPos) = nextNnzPos
     in.close()
-    nRead
+    nextNnzPos
   }
 }
 
