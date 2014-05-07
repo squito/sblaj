@@ -39,20 +39,25 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, logTheta: Arr
     totalLL
   }
 
-  def oneEMRound(data: SparseBinaryRowMatrix, logClassPriors : Array[Array[Float]]) = {
+  def oneEMRound(data: SparseBinaryRowMatrix, logClassPriors : Array[Array[Float]], priorWeight: Option[Float]) = {
     resetEmissionCounts()
     val ll = addToFeatureEmissionCounts(data, logClassPriors)
-    updateTheta()
+    updateTheta(priorWeight, data)
     ll
   }
 
-  def emTillConvergence(data: SparseBinaryRowMatrix, logClassPriors: Array[Array[Float]],
-                        maxRounds: Int = 100, minLogLikelihoodDelta : Float = 1e-10f) {
-    randomInit(data, logClassPriors)
-    var prevLL = oneEMRound(data, logClassPriors)
+  def emTillConvergence(
+    data: SparseBinaryRowMatrix,
+    logClassPriors: Array[Array[Float]],
+    priorWeight: Option[Float],
+    maxRounds: Int = 100,
+    minLogLikelihoodDelta : Float = 1e-10f
+  ) {
+    randomInit(data, logClassPriors, priorWeight)
+    var prevLL = oneEMRound(data, logClassPriors, priorWeight)
     var round = 1
     while (round < maxRounds) {
-      val nextLL = oneEMRound(data, logClassPriors)
+      val nextLL = oneEMRound(data, logClassPriors, priorWeight)
       round += 1
       println("LL(" + round + ") = " + nextLL + "\t Delta = " + (nextLL - prevLL))
       if (nextLL - prevLL < minLogLikelihoodDelta)
@@ -61,9 +66,13 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, logTheta: Arr
     }
   }
 
-  def updateTheta() {
-    //TODO add way to switch between ML & MAP
-    mlThetaUpdate()
+  def updateTheta(priorWeight: Option[Float], data: SparseBinaryRowMatrix) {
+    priorWeight match {
+      case None =>
+        mlThetaUpdate()
+      case Some(pw) =>
+        mapThetaUpdate(pw, data)
+    }
   }
 
   def mlThetaUpdate() {
@@ -105,7 +114,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, logTheta: Arr
     java.util.Arrays.fill(denomCounts, 0f)
   }
 
-  def randomInit(data: SparseBinaryRowMatrix, logClassPriors: Array[Array[Float]]) {
+  def randomInit(data: SparseBinaryRowMatrix, logClassPriors: Array[Array[Float]], priorWeight: Option[Float]) {
     val posterior = new Array[Float](nClasses)
     var idx = 0
     data.foreach { vector =>
@@ -117,7 +126,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, logTheta: Arr
       posterior(klass) = 0
       idx += 1
     }
-    updateTheta()
+    updateTheta(priorWeight, data)
   }
 
 }
