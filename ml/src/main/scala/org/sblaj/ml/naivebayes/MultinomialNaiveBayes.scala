@@ -88,8 +88,9 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int) {
     while (featureIdx < nFeatures) {
       var classIdx = 0
       while (classIdx < nClasses) {
-        //TODO correct map estimate here
-        logTheta(featureIdx)(classIdx) = log(numCounts(featureIdx)(classIdx) / denomCounts(classIdx)).asInstanceOf[Float]
+        val num: Float  = numCounts(featureIdx)(classIdx) + priorWeight
+        val denom: Float = denomCounts(classIdx) + (priorWeight / overallFeatureRates(featureIdx))
+        logTheta(featureIdx)(classIdx) = log(num / denom).asInstanceOf[Float]
         classIdx += 1
       }
       featureIdx += 1
