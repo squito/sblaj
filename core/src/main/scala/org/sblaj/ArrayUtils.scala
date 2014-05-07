@@ -79,7 +79,7 @@ object ArrayUtils {
     result
   }
 
-  def zeroSquareArray(arr: Array[Array[Float]]) {
+  def zeroRectArray(arr: Array[Array[Float]]) {
     var idx = 0
     while (idx < arr.length) {
       java.util.Arrays.fill(arr(idx), 0f)

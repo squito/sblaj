@@ -98,7 +98,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int) {
   }
 
   def resetEmissionCounts() {
-    zeroSquareArray(numCounts)
+    zeroRectArray(numCounts)
     java.util.Arrays.fill(denomCounts, 0f)
   }
 
