@@ -76,9 +76,9 @@ class MultinomialNaiveBayesTest extends FunSuite with Matchers {
       val dataSet = BinomialTestData.generatePowerLawTestData(3, classPriors, 100000, nGiveaway, 0.9f, 0.1f, nNoise, 0.1f, 1e-5f)
       val logSoftLabels = dataSet.makeLogSoftLabels(0.7f)
       println(dataSet.data.nRows + "," + dataSet.data.nCols + "," + dataSet.data.nnz)
-      nb.randomInit(dataSet.data, logSoftLabels)
+      nb.randomInit(dataSet.data, logSoftLabels, None)
 
-      nb.emTillConvergence(dataSet.data, logSoftLabels)
+      nb.emTillConvergence(dataSet.data, logSoftLabels, None)
 
 
 
