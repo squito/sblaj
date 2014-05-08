@@ -82,7 +82,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, val logTheta:
     while (featureIdx < nFeatures) {
       var classIdx = 0
       while (classIdx < nClasses) {
-        logTheta(featureIdx)(classIdx) = log(numCounts(featureIdx)(classIdx) / denomCounts(classIdx)).asInstanceOf[Float]
+        logTheta(featureIdx)(classIdx) = log(numCounts(featureIdx)(classIdx) / denomCounts(classIdx)).toFloat
         classIdx += 1
       }
       featureIdx += 1
@@ -118,7 +118,7 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, val logTheta:
     val posterior = new Array[Float](nClasses)
     var idx = 0
     data.foreach { vector =>
-      val cumPriors = ArrayUtils.cumSum(logClassPriors(idx).map{math.exp(_).asInstanceOf[Float]})
+      val cumPriors = ArrayUtils.cumSum(logClassPriors(idx).map{math.exp(_).toFloat})
       val klass = MultinomialSampler.sampleFromCumProbs(cumPriors)
       posterior(klass) = 1
       vector.outerPlus(posterior, numCounts)
@@ -127,6 +127,23 @@ class MultinomialNaiveBayes(val nFeatures: Int, val nClasses: Int, val logTheta:
       idx += 1
     }
     updateTheta(priorWeight, data)
+  }
+
+
+  def showTopFeatures(data: SparseBinaryRowMatrix, k: Int, classIdxToLabel: Option[Int => String], dictionary: Int => String) {
+    if (overallFeatureRates == null)
+      overallFeatureRates = MultinomialNaiveBayes.getOverallFeatureRates(data)
+    val rateRatio = new Array[Float](nFeatures)
+    (0 until nClasses).foreach{classIdx =>
+      println("class " + classIdx + " " + classIdxToLabel.map{f => f(classIdx)}.getOrElse(""))
+      (0 until nFeatures).foreach{featureIdx =>
+        rateRatio(featureIdx) = math.exp(logTheta(featureIdx)(classIdx)).toFloat / overallFeatureRates(featureIdx)
+      }
+      ArrayUtils.topK(rateRatio, 0, nFeatures, k).map{case(featureIdx, ratio) =>
+        println(dictionary(featureIdx) + "\t" + ratio + "\t" + featureIdx)
+      }
+      println()
+    }
   }
 
 }
