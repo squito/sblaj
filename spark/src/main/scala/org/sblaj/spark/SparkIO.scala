@@ -6,10 +6,11 @@ import org.sblaj.{BaseSparseCountVector, BaseSparseBinaryVector}
 import org.apache.spark.rdd.RDD
 import org.apache.hadoop.io._
 import org.apache.hadoop.mapred._
-import org.sblaj.io.DictionaryIO
+import org.sblaj.io.{RowMatrixPartitionDims, DictionaryIO}
 import java.io.{DataOutputStream, File, PrintWriter}
 import org.apache.hadoop.fs.FileSystem
 import org.apache.hadoop.util.Progressable
+import org.sblaj.featurization.GeneralCompleteDictionary
 
 
 /**
@@ -37,7 +38,8 @@ object SparkIO {
     new File(localDir).mkdirs()
 
     val dictionaryPath = localDir + "/dictionary"
-    DictionaryIO.writeDictionary(rdd.colDictionary, dictionaryPath)
+    val d = rdd.colDictionary.asInstanceOf[GeneralCompleteDictionary[String]]
+    DictionaryIO.writeEnumeration(d.reverseEnum, d.elems.get _, dictionaryPath)
 
     val dimsPath = localDir + "/dims"
     saveMatrixDims(rdd.dims, dimsPath)

@@ -3,8 +3,10 @@ package org.sblaj.spark
 import org.scalatest.{Matchers, BeforeAndAfter, FunSuite}
 import org.apache.spark.SparkContext
 import org.sblaj.MatrixDims
-import org.sblaj.featurization.{Murmur64, HashMapDictionaryCache}
+import org.sblaj.featurization.{GeneralCompleteDictionary, Murmur64, HashMapDictionaryCache}
 import org.apache.log4j.{Logger, Level}
+import java.io.File
+import org.sblaj.io.EnumVectorIO
 
 class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAfter {
 
@@ -13,6 +15,8 @@ class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAft
     SparkBinaryFeaturizerTest.silenceSparkLogging
     sc = new SparkContext("local[4]", "featurization test")
   }
+
+  val testDir = new File("test_output/" + getClass.getSimpleName)
 
   after {
     sc.stop()
@@ -46,6 +50,68 @@ class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAft
         java.util.Arrays.binarySearch(row.colIds, Murmur64.hash64(id.toString)) should be >= (0)
     }
 
+  }
+
+  test("enum featurization") {
+
+    val origData = sc.parallelize(0 until 1e3.toInt, 20)
+    val d = testDir.getAbsolutePath + "/enum_featurization"
+    val matrixRDD = SparkFeaturizer.scalableRowPerRecord(
+      origData,
+      sc,
+      rddDir = d + "/init",
+      minCount = 1,
+      dictionarySampleRate = 1.0
+    ) {_.toLong} { i =>
+      var l = List[String]()
+      l +:=  i.toString
+      if (i % 2 == 0)
+        l +:= "wakka"
+      if (i % 5 == 0)
+        l +:= "ooga booga"
+      if (i % 13 == 0)
+        l +:= "foobar"
+//      println(i -> l)
+      l
+    }
+
+//    val dict = matrixRDD.colEnumeration.asInstanceOf[GeneralCompleteDictionary[String]]
+//    println("************* matrix RDD ******************")
+//    matrixRDD.vectorRDD.foreach{x =>
+//      println(x.colIds.map{id =>
+//        val longId = dict.reverseEnum(id)
+//        val name = dict.elems.get(longId)
+//        (id, longId, name)
+//      }.mkString(","))
+//    }
+//
+//
+//    println("*************** saving RDD ***************")
+
+
+    SparkIO.saveEnumeratedSparseVectorRDD(matrixRDD, d + "/final", d + "/final")
+
+    val (dictionary, loaded) = EnumVectorIO.loadLimitedMatrix(new File(d,"final"))
+//    println("********* Dictionary ************")
+//    dictionary.zipWithIndex.foreach{println}
+//    println("******** loaded matrix ***********")
+//
+    (0 until loaded.nRows).foreach{row =>
+      val (s,e) = (loaded.rowStartIdx(row), loaded.rowStartIdx(row + 1))
+      var exp = List[String]()
+      exp +:=  row.toString
+      if (row % 2 == 0)
+        exp +:= "wakka"
+      if (row % 5 == 0)
+        exp +:= "ooga booga"
+      if (row % 13 == 0)
+        exp +:= "foobar"
+
+      val rowExpanded: Set[String] = loaded.colIds.slice(s,e).map{x => dictionary(x)}.toSet
+      rowExpanded should be (exp.toSet)
+//      println("row = " + row)
+//      println(s"($s, $e)\t ${loaded.colIds.slice(s,e).mkString(",")} \t ${loaded.colIds.slice(s,e).map{x => dictionary(x)}.mkString(",")}")
+    }
   }
 
   test ("multi-featurize") {

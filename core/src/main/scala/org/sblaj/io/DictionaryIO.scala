@@ -14,6 +14,15 @@ object DictionaryIO extends Logging {
     out.close()
   }
 
+  def writeEnumeration(enum: Array[Long], long2Name: Function[Long, Seq[String]], file: String) {
+    val out = new PrintWriter(file)
+    enum.foreach{ longCode =>
+      val names = long2Name(longCode)
+      out.println(names.mkString("|OR|"))
+    }
+    out.close()
+  }
+
   def entryIterator(file:String):Iterator[(String,Long)] = {
     Source.fromFile(file).getLines().map{ line=>
       val p = line.lastIndexOf("\t")

@@ -69,7 +69,7 @@ object ArrayUtils {
   }
 
 
-  def createSquareArray(nRows: Int, nCols: Int) : Array[Array[Float]] = {
+  def createRectArray(nRows: Int, nCols: Int) : Array[Array[Float]] = {
     val result: Array[Array[Float]] = new Array[Array[Float]](nRows)
     var idx = 0
     while (idx < result.length) {
@@ -79,7 +79,7 @@ object ArrayUtils {
     result
   }
 
-  def zeroSquareArray(arr: Array[Array[Float]]) {
+  def zeroRectArray(arr: Array[Array[Float]]) {
     var idx = 0
     while (idx < arr.length) {
       java.util.Arrays.fill(arr(idx), 0f)
