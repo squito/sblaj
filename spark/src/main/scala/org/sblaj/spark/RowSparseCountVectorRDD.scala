@@ -10,6 +10,7 @@ import featurization.FeatureEnumeration
 import org.sblaj.MatrixDims
 import org.apache.spark.SparkContext._
 import org.apache.spark.broadcast.Broadcast
+import org.sblaj.io.RowMatrixPartitionDims
 
 trait RowSparseCountVectorRDD[G] {
   def colDictionary: DictionaryCache[G]

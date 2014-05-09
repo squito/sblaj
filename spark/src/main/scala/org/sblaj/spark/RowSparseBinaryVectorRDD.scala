@@ -48,9 +48,9 @@ trait EnumeratedRowSparseBinaryVectorRDD[G] extends RowSparseBinaryVectorRDD[G] 
   def subsetRows(sc: SparkContext)(f: SparseBinaryVector => Boolean) : EnumeratedRowSparseBinaryVectorRDD[G]
 }
 
-class LongRowSparseVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRowId],
+class LongRowSparseBinaryVectorRDD[G](val vectorRdd: RDD[LongSparseBinaryVectorWithRowId],
                                 val matrixDims: RowMatrixPartitionDims,
-                                val colDictionary: DictionaryCache[G]) extends RowSparseVectorRDD[G] {
+                                val colDictionary: DictionaryCache[G]) extends RowSparseBinaryVectorRDD[G] {
 
   override def dims = matrixDims
 

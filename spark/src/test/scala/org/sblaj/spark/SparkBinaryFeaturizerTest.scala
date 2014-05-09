@@ -56,7 +56,7 @@ class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAft
 
     val origData = sc.parallelize(0 until 1e3.toInt, 20)
     val d = testDir.getAbsolutePath + "/enum_featurization"
-    val matrixRDD = SparkFeaturizer.scalableRowPerRecord(
+    val matrixRDD = SparkBinaryFeaturizer.scalableRowPerRecord(
       origData,
       sc,
       rddDir = d + "/init",
@@ -89,7 +89,7 @@ class SparkBinaryFeaturizerTest extends FunSuite with Matchers with BeforeAndAft
 //    println("*************** saving RDD ***************")
 
 
-    SparkIO.saveEnumeratedSparseVectorRDD(matrixRDD, d + "/final", d + "/final")
+    SparkIO.saveEnumeratedSparseBinaryVectorRDD(matrixRDD, d + "/final", d + "/final")
 
     val (dictionary, loaded) = EnumVectorIO.loadLimitedMatrix(new File(d,"final"))
 //    println("********* Dictionary ************")

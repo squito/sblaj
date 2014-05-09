@@ -10,6 +10,7 @@ import collection._
 import scala.reflect.ClassTag
 import it.unimi.dsi.fastutil.longs.{Long2ObjectOpenHashMap, Long2IntOpenHashMap}
 import org.sblaj.MatrixDims
+import org.sblaj.io.RowMatrixPartitionDims
 
 trait CountFeatureExtractor[U] {
   def init(): Unit = {}
