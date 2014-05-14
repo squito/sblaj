@@ -5,8 +5,9 @@ import org.sblaj.{SparseBinaryRowMatrix, MatrixDims}
 import scala.collection.Map
 import scala.io.Source
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
+import org.sblaj.util.Logging
 
-object EnumVectorIO {
+object EnumVectorIO extends Logging {
 
   def loadMatrixDims(file: File): RowMatrixPartitionDims = {
     val in = Source.fromFile(file).getLines()
@@ -59,17 +60,16 @@ object EnumVectorIO {
       }
     }
 
-    println(s"will use up to partition ${partsToLoad.last._1}, using $usedSpace memory.  $approxDictSpaceBytes for dictionary")
+    info(s"will use up to partition ${partsToLoad.last._1}, using $usedSpace memory.  $approxDictSpaceBytes for dictionary")
 
     val (totalRows, totalNnz) = partsToLoad.foldLeft((0l,0l)){case(prev, (_,(nRows, nnz))) => (prev._1 + nRows, prev._2 + nnz)}
-    println("creating matrix of size " + totalRows.toInt + "," + totalNnz.toInt + "," + nCols)
+    info("creating matrix of size " + totalRows.toInt + "," + totalNnz.toInt + "," + nCols)
     val matrix = new SparseBinaryRowMatrix(totalRows.toInt, totalNnz.toInt, nCols)
     var nextRow = 0
     var nextNnz = 0
     val vectorDir = new File(dir, "vectors")
     partsToLoad.foreach{case(part, (nRows, nnz)) =>
       val f = new File(vectorDir, "part-%05d".format(part))
-      println("reading " + f + ", expecting " + nRows + " rows.  Starting from " + nextNnz + ", expecting to read " + nnz)
       val initialNnzPos = nextNnz
       nextNnz = appendOneVectorFile(f, matrix, nextRow, nextNnz, nRows.toInt)
       val nnzRead = nextNnz - initialNnzPos
@@ -77,6 +77,7 @@ object EnumVectorIO {
       nextRow += nRows.toInt
     }
     matrix.setSize(nextRow, nextNnz)
+    info("finished loading matrix")
     (dictionary, matrix)
   }
 
