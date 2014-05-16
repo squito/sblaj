@@ -4,8 +4,7 @@ import org.scalatest.{Matchers, FunSuite}
 
 class MixedRowMatrixTest extends FunSuite with Matchers {
 
-  test("foreach access") {
-
+  def genMatrix: MixedRowMatrix = {
     val nRows = 4
     val nDense = 5
     val denseData = new Array[Float](nRows * nDense)
@@ -23,13 +22,13 @@ class MixedRowMatrixTest extends FunSuite with Matchers {
       maxRows = nRows
     )
 
-
     (0 until nRows).foreach{rowIdx =>
+      //fill in all the dense values
       (0 until nDense).foreach{denseIdx =>
-        denseData(rowIdx * nDense + denseIdx) = (rowIdx * nDense + denseIdx) * 0.5f
+        denseData(rowIdx * nDense + denseIdx) = (rowIdx * nDense + denseIdx + 1) * 0.5f
       }
 
-      //now add (rowIdx) sparseValues to this row
+      //now add (rowIdx + 1) sparseValues to this row (eg., row 0 gets 1 sparse val, row 1 gets 2, row 2 gets 3, ...
       val rowStartPos = rowStartIdx(rowIdx)
       (0 until (rowIdx + 1)).foreach{sparseColId =>
         sparseIds(rowStartPos + sparseColId) = sparseColId + nDense
@@ -39,18 +38,29 @@ class MixedRowMatrixTest extends FunSuite with Matchers {
     }
     matrix.setSize(4, rowStartIdx(nRows))
 
+
+    matrix
+
+  }
+
+  test("foreach access") {
+    val matrix = genMatrix
+
+    import matrix._ //Because I'm lazy! this is important if you're looking at this code, its where all the vals live
+
+
     var rowIdx = 0
     matrix.foreach{v =>
-      (0 until nDense).foreach { denseIdx =>
-        v.get(denseIdx) should be ((rowIdx * nDense + denseIdx) * 0.5f)
+      (0 until nDenseCols).foreach { denseIdx =>
+        v.get(denseIdx) should be ((rowIdx * nDenseCols + denseIdx + 1) * 0.5f)
       }
 
       (0 until nRows).foreach {sparseIdx =>
-        val sparseVal = v.get(sparseIdx + nDense)
+        val sparseVal = v.get(sparseIdx + nDenseCols)
         withClue(s"row = $rowIdx, col = $sparseIdx, sparseVal = $sparseVal\n" +
-          s"sparseIds = ${sparseIds.mkString(",")}\n" +
-          s"sparseVals = ${sparseVals.mkString(",")}\n" +
-          s"rowStartIdx = ${rowStartIdx.mkString(",")}"){
+          s"sparseIds = ${sparseColIds.mkString(",")}\n" +
+          s"sparseVals = ${sparseColVals.mkString(",")}\n" +
+          s"rowStartIdx = ${sparseRowStartIdx.mkString(",")}"){
           if (sparseIdx <= rowIdx)
             sparseVal should be (sparseIdx + 0.1f)
           else
@@ -61,5 +71,26 @@ class MixedRowMatrixTest extends FunSuite with Matchers {
     }
     rowIdx should be (nRows)
 
+  }
+
+  test("rowFilter") {
+    val matrix = genMatrix
+
+    matrix.rowFilter{v =>
+      v.get(1) > 1.5
+    } should be (Array(1,2,3))
+
+
+    matrix.rowFilter{v =>
+      v.get(0) > 0
+    } should be (Array(0,1,2,3))
+
+    matrix.rowFilter{v =>
+      v.get(20) > 1.0
+    } should be (Array())
+
+    matrix.rowFilter{v =>
+      v.get(7) > 0.1
+    } should be (Array(2,3))
   }
 }

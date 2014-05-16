@@ -65,4 +65,20 @@ class MixedRowMatrix(
   def setSize(nRows: Int, nnz: Int) {
     this.nRows = nRows
   }
+
+
+  /**
+   * returns the row indexes for the rows which match the predicate
+   */
+  def rowFilter(predicate: MixedVector => Boolean): Array[Int] = {
+    var matchingIdxs = IndexedSeq[Int]()
+    var rowIdx = 0
+    foreach{v =>
+      if (predicate(v)) {
+        matchingIdxs :+= rowIdx
+      }
+      rowIdx += 1
+    }
+    matchingIdxs.toArray
+  }
 }
