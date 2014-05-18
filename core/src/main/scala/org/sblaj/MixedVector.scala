@@ -39,4 +39,8 @@ class MixedVector(
     this.sparseStartIdx = sparseStartIdx
     this.sparseEndIdx = sparseEndIdx
   }
+
+  override def toString(): String = {
+    (0 until (nDenseCols + nSparseCols)).map{colIdx => colIdx  + ":" + get(colIdx)}.mkString("{", ",", "}")
+  }
 }
