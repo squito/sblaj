@@ -8,6 +8,7 @@ object SblajBuild extends Build {
   lazy val core = Project("core", file("core"), settings = coreSettings)
 
   lazy val ml = Project("ml", file("ml"), settings = mlSettings) dependsOn (core)
+  lazy val boxwood = Project("boxwood", file("boxwood"), settings = boxwoodSettings) dependsOn (core)
   lazy val spark = Project("spark", file("spark"), settings = sparkSettings) dependsOn (core)
 
   lazy val examples = Project("examples", file("examples"), settings = examplesSettings) dependsOn(core, ml, spark)
@@ -65,6 +66,14 @@ object SblajBuild extends Build {
     name := "sblaj-spark",
     libraryDependencies ++= Seq(
       "org.apache.spark" % "spark-core_2.10" % "0.8.0.99e517d"
+    ),
+    parallelExecution in Test := false
+  )
+
+  def boxwoodSettings = sharedSettings ++ Seq(
+    name := "sblaj-boxwood",
+    libraryDependencies ++= Seq(
+      "com.quantifind" % "boxwood_2.10" % "0.1-SNAPSHOT"
     ),
     parallelExecution in Test := false
   )
