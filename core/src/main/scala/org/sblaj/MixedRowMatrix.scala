@@ -6,4 +6,5 @@ trait  MixedRowMatrix extends Traversable[MixedVector] {
   def foreach[T](f: MixedVector => T)
   def rowFilter(f: MixedVector => Boolean): Array[Int]
   def rowSubset(rowIdxs: Array[Int]): MixedRowMatrix
+  def getColSums: Array[Float]
 }

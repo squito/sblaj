@@ -31,4 +31,33 @@ class SubsetMixedRowMatrix(val rows: Array[Int], val parent: StdMixedRowMatrix) 
     new SubsetMixedRowMatrix(originalIdx, parent)
   }
 
+  def getColSums: Array[Float] = {
+    val cs = new Array[Float](nCols)
+    (0 until rows.length).foreach{rowSubIdx =>
+        val rowIdx = rows(rowSubIdx)
+        val rowOffset = rowIdx * parent.nDenseCols
+        (0 until parent.nDenseCols).foreach{colIdx =>
+          try {
+            cs(colIdx) += parent.denseCols(rowOffset + colIdx)
+          } catch {
+            case ex: Throwable =>
+              println("exception on (row, col) = " + (rowIdx, colIdx))
+              println("exception on (rowOffset) = " + rowOffset)
+              println("exception on (denseCols.size, nDenseCols) = " + (parent.denseCols.size, parent.nDenseCols))
+              throw ex
+          }
+        }
+    }
+
+    (0 until rows.length).foreach{rowSubIdx =>
+      val rowIdx = rows(rowSubIdx)
+      (parent.sparseRowStartIdx(rowIdx) until parent.sparseRowStartIdx(rowIdx + 1)).foreach{sparseIdx =>
+        val colId = parent.sparseColIds(sparseIdx)
+        cs(colId) += parent.sparseColVals(sparseIdx)
+      }
+    }
+    cs
+
+  }
+
 }

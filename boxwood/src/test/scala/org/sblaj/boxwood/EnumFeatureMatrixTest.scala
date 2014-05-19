@@ -49,26 +49,28 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
   val nRows = 1000
   val nSparse = 100
 
+  //TODO need an easier way to create dictionary, even if just for testing ...
+  val goodWords = Set(
+    "bbq",
+    "mmmm"
+  )
+  val badWords = Set(
+    "soggy",
+    "cold"
+  )
+  val otherWords = Set(
+    "cheese",
+    "buns"
+  )
+  val sparseDictionary: Map[String, Int] = (goodWords ++ badWords ++ otherWords).
+    foldLeft((Map[String,Int](), LunchOrder_FeatureSet.nFeatures)){case ((m,n), s) =>
+    val nextMap = (m + (s -> n))
+    (nextMap, n + 1)
+  }._1
+
+
   def genData: EnumFeaturesMatrix[U,F] = {
 
-    //TODO need an easier way to create dictionary, even if just for testing ...
-    val goodWords = Set(
-      "bbq",
-      "mmmm"
-    )
-    val badWords = Set(
-      "soggy",
-      "cold"
-    )
-    val otherWords = Set(
-      "cheese",
-      "buns"
-    )
-    val sparseDictionary: Map[String, Int] = (goodWords ++ badWords ++ otherWords).
-      foldLeft((Map[String,Int](), LunchOrder_FeatureSet.nFeatures)){case ((m,n), s) =>
-        val nextMap = (m + (s -> n))
-      (nextMap, n + 1)
-    }._1
 
     val matrix = new StdMixedRowMatrix(
       nDenseCols = LunchOrder_FeatureSet.nFeatures,
@@ -141,6 +143,20 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
       v(IceCreamOrder.Vanilla) >= 1.0f
     }""" shouldNot compile
 
+
+    val happyColSums = happyHamburger.getColSums
+    val unhappyColSums = unHappyHamburger.getColSums
+
+    val happyAvg = happyColSums.map{_ / happyHamburger.nRows}
+    val unhappyAvg = unhappyColSums.map{_ / unHappyHamburger.nRows}
+
+    (0 until LunchOrder_FeatureSet.nFeatures).foreach{featureIdx =>
+      val feature = LunchOrder_FeatureSet.enumUnion.getEnum(featureIdx)
+      println(feature + "\t" + happyAvg(featureIdx) + "\t" + unhappyAvg(featureIdx))
+    }
+    sparseDictionary.foreach{case(word, idx) =>
+        println(word + "\t" + happyAvg(idx) + "\t" + unhappyAvg(idx))
+    }
   }
 
 }

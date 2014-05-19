@@ -40,4 +40,6 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
   def foreach[T](f: MixedVector => T) {
     matrix.foreach(f)
   }
+
+  def getColSums: Array[Float] = matrix.getColSums
 }

@@ -113,6 +113,10 @@ class StdMixedRowMatrixTest extends FunSuite with Matchers {
     subsubExc.getMessage should include ("tried to subset with out of range row id (3)")
   }
 
+  test("col sums") {
+    pending //std & subset
+  }
+
   test("sparseMatrix") {
     pending
   }

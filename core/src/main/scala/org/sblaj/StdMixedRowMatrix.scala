@@ -31,6 +31,7 @@ class StdMixedRowMatrix(
   }
 
   var nRows: Int = 0
+  var nnz: Int = 0
   def nCols = nDenseCols + nSparseCols
 
 
@@ -52,6 +53,7 @@ class StdMixedRowMatrix(
 
   def setSize(nRows: Int, nnz: Int) {
     this.nRows = nRows
+    this.nnz = nnz
   }
 
   def setRowVector(vector: MixedVector, rowIdx: Int) {
@@ -96,6 +98,22 @@ class StdMixedRowMatrix(
   def rowSubset(rowIdxs: Array[Int]): SubsetMixedRowMatrix = {
     StdMixedRowMatrix.checkRowSubsetIdxs(rowIdxs, nRows)
     new SubsetMixedRowMatrix(rowIdxs, this)
+  }
+
+  def getColSums: Array[Float] = {
+    val cs = new Array[Float](nCols)
+    (0 until nRows).foreach{rowIdx =>
+      val rowOffset = rowIdx * nCols
+      (0 until nCols).foreach{colIdx =>
+        cs(colIdx) += denseCols(rowOffset + colIdx)
+      }
+    }
+
+    (0 until nnz).foreach{sparseIdx =>
+      val colId = sparseColIds(sparseIdx)
+      cs(colId) += sparseColVals(sparseIdx)
+    }
+    cs
   }
 }
 
