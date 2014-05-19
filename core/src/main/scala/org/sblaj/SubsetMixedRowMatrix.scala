@@ -31,6 +31,10 @@ class SubsetMixedRowMatrix(val rows: Array[Int], val parent: StdMixedRowMatrix) 
     new SubsetMixedRowMatrix(originalIdx, parent)
   }
 
+  def rowSubset(f: MixedVector => Boolean): SubsetMixedRowMatrix = {
+    rowSubset(rowFilter(f))
+  }
+
   def getColSums: Array[Float] = {
     val cs = new Array[Float](nCols)
     (0 until rows.length).foreach{rowSubIdx =>

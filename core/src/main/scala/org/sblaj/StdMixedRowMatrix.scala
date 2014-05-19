@@ -100,6 +100,10 @@ class StdMixedRowMatrix(
     new SubsetMixedRowMatrix(rowIdxs, this)
   }
 
+  def rowSubset(predicate: MixedVector => Boolean): SubsetMixedRowMatrix = {
+    rowSubset(rowFilter(predicate))
+  }
+
   def getColSums: Array[Float] = {
     val cs = new Array[Float](nCols)
     (0 until nRows).foreach{rowIdx =>

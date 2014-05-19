@@ -60,7 +60,12 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
   )
   val otherWords = Set(
     "cheese",
-    "buns"
+    "buns",
+    "sauce",
+    "ketchup",
+    "fries",
+    "onions",
+    "toys"
   )
   val sparseDictionary: Map[String, Int] = (goodWords ++ badWords ++ otherWords).
     foldLeft((Map[String,Int](), LunchOrder_FeatureSet.nFeatures)){case ((m,n), s) =>
@@ -132,12 +137,18 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     val data = genData
     import EntreeSatisfactionFilter._
 
-    val happyHamburger = data.rowSubset(data.eRowFilter{v => withGoodTaste(v) && withHamburgers(v)})
     //note that if you pass in a closure directly, somehow or the other, the implicit magic is all hidden from you
-    val happy2 = data.eRowFilter{v =>
+    val happyHamburger = data.eRowSubset{v =>
       v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) >= 4
     }
-    val unHappyHamburger = data.rowSubset(data.eRowFilter{v => withBadTaste(v) && withHamburgers(v)})
+    val unHappyHamburger = data.eRowSubset{v =>
+      v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) <= 2
+    }
+
+    //if we wanted, we can also define the functions elsewhere -- but then the function defs have messy signatures
+    val happy2 = data.rowSubset(data.eRowFilter{v => withGoodTaste(v) && withHamburgers(v)})
+    happy2.nRows should be (happyHamburger.nRows) //ok, not an exact test ...
+
 
     """data.eRowFilter{v =>
       v(IceCreamOrder.Vanilla) >= 1.0f
@@ -152,7 +163,7 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
 
     (0 until LunchOrder_FeatureSet.nFeatures).foreach{featureIdx =>
       val feature = LunchOrder_FeatureSet.enumUnion.getEnum(featureIdx)
-      println(feature + "\t" + happyAvg(featureIdx) + "\t" + unhappyAvg(featureIdx))
+      println(feature.getDeclaringClass.getSimpleName + "." + feature + "\t" + happyAvg(featureIdx) + "\t" + unhappyAvg(featureIdx))
     }
     sparseDictionary.foreach{case(word, idx) =>
         println(word + "\t" + happyAvg(idx) + "\t" + unhappyAvg(idx))

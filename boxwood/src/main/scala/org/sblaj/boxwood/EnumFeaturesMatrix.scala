@@ -34,6 +34,15 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
     )
   }
 
+  def rowSubset(f: MixedVector => Boolean): EnumFeaturesMatrix[U,T] = {
+    rowSubset(rowFilter(f))
+  }
+
+  def eRowSubset(f: BEMVector[U,T] => Boolean): EnumFeaturesMatrix[U,T] = {
+    rowSubset(eRowFilter(f))
+  }
+
+
   def nCols: Int = matrix.nCols
   def nRows: Int = matrix.nRows
 
