@@ -137,7 +137,7 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     val data = genData
     import EntreeSatisfactionFilter._
 
-    //note that if you pass in a closure directly, somehow or the other, the implicit magic is all hidden from you
+    //note that if you pass in a closure directly, the implicit magic is all hidden from you (somehow)
     val happyHamburger = data.eRowSubset{v =>
       v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) >= 4
     }
@@ -161,12 +161,20 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     val happyAvg = happyColSums.map{_ / happyHamburger.nRows}
     val unhappyAvg = unhappyColSums.map{_ / unHappyHamburger.nRows}
 
-    (0 until LunchOrder_FeatureSet.nFeatures).foreach{featureIdx =>
-      val feature = LunchOrder_FeatureSet.enumUnion.getEnum(featureIdx)
-      println(feature.getDeclaringClass.getSimpleName + "." + feature + "\t" + happyAvg(featureIdx) + "\t" + unhappyAvg(featureIdx))
+    val fullDictionary: IndexedSeq[String] = {
+      val denseDict = (0 until LunchOrder_FeatureSet.nFeatures).map {featureIdx =>
+        val feature = LunchOrder_FeatureSet.enumUnion.getEnum(featureIdx)
+        feature.getDeclaringClass.getSimpleName + "." + feature
+      }
+
+      denseDict ++ sparseDictionary.toIndexedSeq.sortBy{_._2}.map{_._1}
     }
-    sparseDictionary.foreach{case(word, idx) =>
-        println(word + "\t" + happyAvg(idx) + "\t" + unhappyAvg(idx))
+
+    (0 until fullDictionary.size).foreach{idx =>
+        val feature = fullDictionary(idx)
+        val diff = math.abs(happyAvg(idx) - unhappyAvg(idx))
+        if (diff > 0.2) //really we should have a statistical test here ...
+          println(feature + "\t" + happyAvg(idx) + "\t" + unhappyAvg(idx))
     }
   }
 
