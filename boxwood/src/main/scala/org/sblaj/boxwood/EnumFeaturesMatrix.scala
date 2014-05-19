@@ -1,12 +1,12 @@
 package org.sblaj.boxwood
 
-import org.sblaj.{MixedVector, StdMixedRowMatrix}
+import org.sblaj.{MixedRowMatrix, MixedVector, StdMixedRowMatrix}
 import com.quantifind.boxwood.{EnumUnionFeatureSet, EnumUnion}
 
 class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
-  val matrix: StdMixedRowMatrix,
+  val matrix: MixedRowMatrix,
   val featureSet: T
-) {
+) extends MixedRowMatrix {
 
   /**
    * filter rows, making use of the enum over the features.
@@ -25,5 +25,19 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
 
   def rowFilter(f: MixedVector => Boolean): Array[Int] = {
     matrix.rowFilter(f)
+  }
+
+  def rowSubset(idxs: Array[Int]): EnumFeaturesMatrix[U,T] = {
+    new EnumFeaturesMatrix[U,T](
+      matrix.rowSubset(idxs),
+      featureSet
+    )
+  }
+
+  def nCols: Int = matrix.nCols
+  def nRows: Int = matrix.nRows
+
+  def foreach[T](f: MixedVector => T) {
+    matrix.foreach(f)
   }
 }
