@@ -4,15 +4,15 @@ package org.sblaj
  *
  */
 class MixedVector(
-  denseCols: Array[Float],
+  var denseCols: Array[Float],
   var denseStartIdx: Int,
   var denseEndIdx: Int,
-  sparseColIds: Array[Int],
-  sparseColVals: Array[Float],
+  var sparseColIds: Array[Int],
+  var sparseColVals: Array[Float],
   var sparseStartIdx: Int,
   var sparseEndIdx: Int,
-  nDenseCols: Int,
-  nSparseCols: Int
+  val nDenseCols: Int,
+  val nSparseCols: Int
 ) {
 
   def get(col: Int): Float = {
