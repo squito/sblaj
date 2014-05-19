@@ -1,8 +1,14 @@
 package org.sblaj.boxwood
 
 import org.sblaj.MixedVector
-import com.quantifind.boxwood.{EnumUnion, EnumUnionFeatureSet, FeatureSet}
+import com.quantifind.boxwood.{EnumUnionFeatureSet, EnumUnion, FeatureSet}
 
+/**
+ * Boxwood
+ * Enum
+ * Mixed
+ * Vector
+ */
 class BEMVector[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
   denseCols: Array[Float],
   denseStartIdx: Int,
@@ -40,7 +46,7 @@ class BEMVector[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
     )
   }
 
-  def get[E <: Enum[E]](e: E)(implicit ev: U with EnumUnion[E]): Float = {
+  def apply[E <: Enum[E]](e: E)(implicit ev: U with EnumUnion[E]): Float = {
     val idx: Int = featureSet.get(e)
     get(idx)
   }
@@ -49,6 +55,23 @@ class BEMVector[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
     val idx: Int = featureSet.get(e)
     denseCols(idx + denseStartIdx) = v
   }
+}
 
+object BEMVector {
+  def wrap[U <: EnumUnion[Enum[_]], T <: EnumUnionFeatureSet[U]](v: MixedVector, f: T):
+    BEMVector[U,T] =
+  {
+    new BEMVector(
+      denseCols = v.denseCols,
+      denseStartIdx = v.denseStartIdx,
+      denseEndIdx = v.denseEndIdx,
+      sparseColIds = v.sparseColIds,
+      sparseColVals = v.sparseColVals,
+      sparseStartIdx = v.sparseStartIdx,
+      sparseEndIdx =  v.sparseEndIdx,
+      nSparseCols =  v.nSparseCols,
+      featureSet = f
+    )
+  }
 
 }

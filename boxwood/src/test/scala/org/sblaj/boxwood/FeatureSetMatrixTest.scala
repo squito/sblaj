@@ -65,11 +65,11 @@ class FeatureSetMatrixTest extends FunSuite with Matchers {
     // what else is in there
     def getSodaOrder[T <: EnumUnion[Enum[_]]](v: BEMVector[T, _])
       (implicit ev: T with EnumUnion[SodaOrder]): Array[Float] = {
-      SodaOrder.values().map{size => v.get(size)}
+      SodaOrder.values().map{size => v(size)}
     }
     def getHamburgerOrder[T <: EnumUnion[Enum[_]]](v: BEMVector[T,_])
       (implicit ev: T with EnumUnion[EntreeOrder]): Float = {
-      v.get(EntreeOrder.Hamburger)
+      v(EntreeOrder.Hamburger)
     }
 
     getSodaOrder(v2) should be (Array(0f,0f,3f))
@@ -81,6 +81,7 @@ class FeatureSetMatrixTest extends FunSuite with Matchers {
 
     getSodaOrder(v3) should be (Array(2f,0f,0f))
     "getHamburgerOrder(v3)" shouldNot compile
+
   }
 
 }
