@@ -89,7 +89,7 @@ class StdMixedRowMatrixTest extends FunSuite with Matchers {
     validateSubset(subsub)
 
 
-    val emptySubset = matrix.rowSubset(Array())
+    val emptySubset = matrix.rowSubset(Array[Int]())
     emptySubset.nRows should be (0)
     validateSubset(emptySubset)
 

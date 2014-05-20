@@ -134,7 +134,7 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
 
 
   test("demo type-safe slice & dice w/ general math") {
-    val data = genData
+    val data: EnumFeaturesMatrix[U, F] = genData
     import EntreeSatisfactionFilter._
 
     //note that if you pass in a closure directly, the implicit magic is all hidden from you (somehow)
@@ -173,7 +173,7 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     (0 until fullDictionary.size).foreach{idx =>
         val feature = fullDictionary(idx)
         val diff = math.abs(happyAvg(idx) - unhappyAvg(idx))
-        if (diff > 0.2) //really we should have a statistical test here ...
+        if (diff > 0.2) //really we should have a statistical test here, but you get the idea
           println(feature + "\t" + happyAvg(idx) + "\t" + unhappyAvg(idx))
     }
   }

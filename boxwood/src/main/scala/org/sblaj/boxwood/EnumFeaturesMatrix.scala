@@ -1,6 +1,6 @@
 package org.sblaj.boxwood
 
-import org.sblaj.{MixedRowMatrix, MixedVector, StdMixedRowMatrix}
+import org.sblaj.{MixedRowMatrix, MixedVector}
 import com.quantifind.boxwood.{EnumUnionFeatureSet, EnumUnion}
 
 class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
