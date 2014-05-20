@@ -3,7 +3,8 @@ import Keys._
 
 object SblajBuild extends Build {
   
-  lazy val root = Project(id = "root", base = file("."), settings = rootSettings) aggregate (core, ml, spark)
+  lazy val root = Project(id = "root", base = file("."), settings = rootSettings) aggregate (core,
+    ml, spark, boxwood)
 
   lazy val core = Project("core", file("core"), settings = coreSettings)
 
