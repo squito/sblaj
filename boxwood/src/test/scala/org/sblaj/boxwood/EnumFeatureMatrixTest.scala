@@ -138,15 +138,15 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     import EntreeSatisfactionFilter._
 
     //note that if you pass in a closure directly, the implicit magic is all hidden from you (somehow)
-    val happyHamburger = data.eRowSubset{v =>
+    val happyHamburger: EnumFeaturesMatrix[U,F] = data.eRowSubset{v =>
       v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) >= 4
     }
-    val unHappyHamburger = data.eRowSubset{v =>
+    val unHappyHamburger: EnumFeaturesMatrix[U,F] = data.eRowSubset{v =>
       v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) <= 2
     }
 
     //if we wanted, we can also define the functions elsewhere -- but then the function defs have messy signatures
-    val happy2 = data.rowSubset(data.eRowFilter{v => withGoodTaste(v) && withHamburgers(v)})
+    val happy2: EnumFeaturesMatrix[U,F] = data.rowSubset(data.eRowFilter{v => withGoodTaste(v) && withHamburgers(v)})
     happy2.nRows should be (happyHamburger.nRows) //ok, not an exact test ...
 
 
@@ -155,8 +155,8 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     }""" shouldNot compile
 
 
-    val happyColSums = happyHamburger.getColSums
-    val unhappyColSums = unHappyHamburger.getColSums
+    val happyColSums: Array[Float] = happyHamburger.getColSums
+    val unhappyColSums: Array[Float] = unHappyHamburger.getColSums
 
     val happyAvg = happyColSums.map{_ / happyHamburger.nRows}
     val unhappyAvg = unhappyColSums.map{_ / unHappyHamburger.nRows}

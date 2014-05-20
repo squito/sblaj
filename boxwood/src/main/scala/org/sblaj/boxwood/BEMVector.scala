@@ -31,8 +31,7 @@ class BEMVector[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
   nDenseCols = featureSet.nFeatures
 ) {
 
-  //just for testing ... in general this is wasteful of space for the sparse data
-  private[boxwood] def this(nSparseCols: Int, featureSet: T) {
+  def this(nSparseCols: Int, nnz: Int, featureSet: T) {
     this(
       new Array[Float](featureSet.nFeatures),
       0,
@@ -40,10 +39,15 @@ class BEMVector[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
       new Array[Int](nSparseCols),
       new Array[Float](nSparseCols),
       0,
-      nSparseCols,
+      nnz,
       nSparseCols,
       featureSet
     )
+  }
+
+  //just for testing ... in general this is wasteful of space for the sparse data
+  private[boxwood] def this(nSparseCols: Int, featureSet: T) {
+    this(nSparseCols, nSparseCols, featureSet)
   }
 
   def apply[E <: Enum[E]](e: E)(implicit ev: U with EnumUnion[E]): Float = {
