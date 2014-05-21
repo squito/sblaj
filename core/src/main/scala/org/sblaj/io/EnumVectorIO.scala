@@ -1,7 +1,7 @@
 package org.sblaj.io
 
-import java.io.{FileInputStream, DataInputStream, File}
-import org.sblaj.{SparseBinaryRowMatrix, MatrixDims}
+import java.io._
+import org.sblaj.{StdMixedRowMatrix, SparseBinaryRowMatrix, MatrixDims}
 import scala.collection.Map
 import scala.io.Source
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream
@@ -93,6 +93,79 @@ object EnumVectorIO extends Logging {
     matrix.rowStartIdx(nextRowPos) = nextNnzPos
     in.close()
     nextNnzPos
+  }
+
+
+  def writeMixedMatrix(matrix: StdMixedRowMatrix, file: File) {
+    val out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)))
+    out.writeInt(matrix.nRows)
+    out.writeInt(matrix.nCols)
+    out.writeInt(matrix.nDenseCols)
+    out.writeInt(matrix.nSparseCols)
+    out.writeInt(matrix.nnz)
+
+    writeArray(out, matrix.denseCols)
+    writeArray(out, matrix.sparseRowStartIdx)
+    writeArray(out, matrix.sparseColIds)
+    writeArray(out, matrix.sparseColVals)
+
+    out.close()
+  }
+
+  def readMixedMatrix(file: File): StdMixedRowMatrix = {
+    val in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)))
+    val nRows = in.readInt()
+    val nCols = in.readInt()
+    val nDenseCols = in.readInt()
+    val nSparseCols = in.readInt()
+    val nnz = in.readInt()
+
+    val matrix = new StdMixedRowMatrix(
+      nDenseCols = nDenseCols,
+      nSparseCols = nSparseCols,
+      maxNnz = nnz,
+      maxRows = nRows
+    )
+    matrix.setSize(nRows, nnz)
+
+    readArray(in, matrix.denseCols)
+    readArray(in, matrix.sparseRowStartIdx)
+    readArray(in, matrix.sparseColIds)
+    readArray(in, matrix.sparseColVals)
+    in.close()
+    matrix
+  }
+
+
+  def writeArray(out: DataOutputStream, arr: Array[Int]) {
+    writeArray(out, arr, 0, arr.length)
+  }
+
+  def writeArray(out: DataOutputStream, arr: Array[Int], startIdx: Int, endIdx: Int) {
+    (startIdx until endIdx).foreach{idx =>
+      out.writeInt(arr(idx))
+    }
+  }
+
+  def writeArray(out: DataOutputStream, arr: Array[Float]) {
+    writeArray(out, arr, 0, arr.length)
+  }
+  def writeArray(out: DataOutputStream, arr: Array[Float], startIdx: Int, endIdx: Int) {
+    (startIdx until endIdx).foreach{idx =>
+      out.writeFloat(arr(idx))
+    }
+  }
+
+  def readArray(in: DataInputStream, into: Array[Float]) {
+    (0 until into.length).foreach{idx =>
+      into(idx) = in.readFloat()
+    }
+  }
+
+  def readArray(in: DataInputStream, into: Array[Int]) {
+    (0 until into.length).foreach{idx =>
+      into(idx) = in.readInt()
+    }
   }
 }
 
