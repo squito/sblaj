@@ -1,6 +1,6 @@
 package org.sblaj
 
-trait  MixedRowMatrix extends Traversable[MixedVector] {
+trait  MixedRowMatrix extends Traversable[MixedVector] with Serializable {
   def nRows: Int
   def nCols: Int
   def foreach[T](f: MixedVector => T)
