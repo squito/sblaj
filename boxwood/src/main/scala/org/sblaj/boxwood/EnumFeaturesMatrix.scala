@@ -6,7 +6,7 @@ import com.quantifind.boxwood.{EnumUnionFeatureSet, EnumUnion}
 class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
   val matrix: MixedRowMatrix,
   val featureSet: T
-) extends MixedRowMatrix {
+) extends MixedRowMatrix with Serializable {
 
 
   def this(
