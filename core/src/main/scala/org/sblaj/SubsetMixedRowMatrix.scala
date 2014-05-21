@@ -64,4 +64,13 @@ class SubsetMixedRowMatrix(val rows: Array[Int], val parent: StdMixedRowMatrix) 
 
   }
 
+  def getVector: MixedVector = {
+    parent.getVector
+  }
+
+  def setRowVector(vector: MixedVector, rowIdx: Int) {
+    parent.setRowVector(vector, rows(rowIdx))
+  }
+
+
 }

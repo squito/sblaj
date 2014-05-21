@@ -8,4 +8,7 @@ trait  MixedRowMatrix extends Traversable[MixedVector] {
   def rowSubset(rowIdxs: Array[Int]): MixedRowMatrix
   def rowSubset(f: MixedVector => Boolean): MixedRowMatrix
   def getColSums: Array[Float]
+
+  def getVector: MixedVector
+  def setRowVector(v: MixedVector, rowIdx: Int)
 }

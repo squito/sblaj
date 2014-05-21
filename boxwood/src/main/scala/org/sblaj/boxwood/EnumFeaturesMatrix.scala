@@ -1,12 +1,31 @@
 package org.sblaj.boxwood
 
-import org.sblaj.{MixedRowMatrix, MixedVector}
+import org.sblaj.{StdMixedRowMatrix, MixedRowMatrix, MixedVector}
 import com.quantifind.boxwood.{EnumUnionFeatureSet, EnumUnion}
 
 class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
   val matrix: MixedRowMatrix,
   val featureSet: T
 ) extends MixedRowMatrix {
+
+
+  def this(
+    nSparseCols: Int,
+    maxNnz: Int,
+    maxRows: Int,
+    featureSet: T
+  ) {
+    this(
+      new StdMixedRowMatrix(
+        featureSet.nFeatures,
+        nSparseCols,
+        maxNnz,
+        maxRows
+      ),
+      featureSet
+    )
+  }
+
 
   /**
    * filter rows, making use of the enum over the features.
@@ -51,4 +70,19 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
   }
 
   def getColSums: Array[Float] = matrix.getColSums
+
+  def getVector: MixedVector = {
+    matrix.getVector
+  }
+
+  def setRowVector(vector: MixedVector, rowIdx: Int) {
+    //TODO this doesn't really make sense -- we need to template on the row type
+    matrix.setRowVector(vector, rowIdx)
+  }
+
+  def getVector(rowIdx: Int): BEMVector[U,T] = {
+    val v = matrix.getVector
+    BEMVector.wrap[U,T](v, featureSet)
+  }
+
 }
