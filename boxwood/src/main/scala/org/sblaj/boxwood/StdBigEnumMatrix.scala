@@ -23,7 +23,7 @@ class StdBigEnumMatrix[U <: EnumUnion[Enum[_]], T <: EnumUnionFeatureSet[U]](
 
   def getColSums: Array[Float] = {
     val colSums = parts(0).getColSums
-    (1 until colSums.length).foreach{idx =>
+    (1 until parts.length).foreach{idx =>
       val nextCs = parts(idx).getColSums
       ArrayUtils.+=(nextCs, colSums)
     }
