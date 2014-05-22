@@ -107,8 +107,8 @@ class StdMixedRowMatrix(
   def getColSums: Array[Float] = {
     val cs = new Array[Float](nCols)
     (0 until nRows).foreach{rowIdx =>
-      val rowOffset = rowIdx * nCols
-      (0 until nCols).foreach{colIdx =>
+      val rowOffset = rowIdx * nDenseCols
+      (0 until nDenseCols).foreach{colIdx =>
         cs(colIdx) += denseCols(rowOffset + colIdx)
       }
     }

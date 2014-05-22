@@ -114,7 +114,12 @@ class StdMixedRowMatrixTest extends FunSuite with Matchers {
   }
 
   test("col sums") {
-    pending //std & subset
+    val data = genMatrix
+    val cs = data.getColSums
+
+    val sub = data.rowSubset(Array(1,2))
+    val subCs = sub.getColSums
+    pending
   }
 
   test("sparseMatrix") {
