@@ -178,6 +178,10 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     }
   }
 
+  test("get vector") {
+    pending
+  }
+
 }
 
 

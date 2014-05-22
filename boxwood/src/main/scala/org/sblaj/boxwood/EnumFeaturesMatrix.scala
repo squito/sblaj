@@ -82,6 +82,7 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
 
   def getVector(rowIdx: Int): BEMVector[U,T] = {
     val v = matrix.getVector
+    matrix.setRowVector(v, rowIdx)
     BEMVector.wrap[U,T](v, featureSet)
   }
 
