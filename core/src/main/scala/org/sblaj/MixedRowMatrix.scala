@@ -11,4 +11,8 @@ trait  MixedRowMatrix extends Traversable[MixedVector] with Serializable {
 
   def getVector: MixedVector
   def setRowVector(v: MixedVector, rowIdx: Int)
+
+  def sizeString: String
+
+  override def toString(): String = getClass().getSimpleName + " " + sizeString
 }

@@ -86,4 +86,6 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
     BEMVector.wrap[U,T](v, featureSet)
   }
 
+  def sizeString = matrix.sizeString
+
 }

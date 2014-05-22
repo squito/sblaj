@@ -72,5 +72,6 @@ class SubsetMixedRowMatrix(val rows: Array[Int], val parent: StdMixedRowMatrix) 
     parent.setRowVector(vector, rows(rowIdx))
   }
 
+  def sizeString = s"$nRows x (${parent.nDenseCols} , ${parent.nSparseCols}).  parentSize = ${parent.sizeString}"
 
 }

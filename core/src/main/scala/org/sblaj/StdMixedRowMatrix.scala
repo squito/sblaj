@@ -119,6 +119,8 @@ class StdMixedRowMatrix(
     }
     cs
   }
+
+  def sizeString = s"$nRows x ($nDenseCols , $nSparseCols): $nnz.  maxRows = $maxRows, maxNnz = $maxNnz"
 }
 
 object StdMixedRowMatrix {
