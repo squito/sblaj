@@ -105,9 +105,9 @@ object EnumVectorIO extends Logging {
     out.writeInt(matrix.nnz)
 
     writeArray(out, matrix.denseCols)
-    writeArray(out, matrix.sparseRowStartIdx)
-    writeArray(out, matrix.sparseColIds)
-    writeArray(out, matrix.sparseColVals)
+    writeArray(out, matrix.sparseRowStartIdx, 0, matrix.nRows + 1)
+    writeArray(out, matrix.sparseColIds, 0, matrix.nnz)
+    writeArray(out, matrix.sparseColVals, 0, matrix.nnz)
 
     out.close()
   }
@@ -127,6 +127,7 @@ object EnumVectorIO extends Logging {
       maxRows = nRows
     )
     matrix.setSize(nRows, nnz)
+    info(s"reading a matrix of size: $nRows x ($nDenseCols, $nSparseCols) : $nnz")
 
     readArray(in, matrix.denseCols)
     readArray(in, matrix.sparseRowStartIdx)
