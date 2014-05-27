@@ -71,6 +71,8 @@ class EnumFeaturesMatrix[U <: EnumUnion[Enum[_]], +T <: EnumUnionFeatureSet[U]](
 
   def getColSums: Array[Float] = matrix.getColSums
 
+  def getDenseSumSq: Array[Float] = matrix.getDenseSumSq
+
   def getVector: MixedVector = {
     matrix.getVector
   }

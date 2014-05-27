@@ -38,4 +38,13 @@ class StdBigEnumMatrix[U <: EnumUnion[Enum[_]], T <: EnumUnionFeatureSet[U]](
     }
     new StdBigEnumMatrix[U,T](featureSet, newParts)
   }
+
+  def getDenseSumSq: Array[Float] = {
+    val sumSq = parts(0).getDenseSumSq
+    (1 until parts.length).foreach{idx =>
+      val nextSq = parts(idx).getDenseSumSq
+      ArrayUtils.+=(nextSq, sumSq)
+    }
+    sumSq
+  }
 }

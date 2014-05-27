@@ -10,6 +10,7 @@ trait BigEnumMatrix[U <: EnumUnion[Enum[_]], T <: EnumUnionFeatureSet[U]] {
   def nBlocks: Int
   def nRows: Long
   def getColSums: Array[Float]
+  def getDenseSumSq: Array[Float]
 
   def eRowFilter(f: BEMVector[U,T] => Boolean): Array[Array[Int]] = {
     rowFilter{v =>

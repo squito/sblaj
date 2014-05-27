@@ -64,6 +64,28 @@ class SubsetMixedRowMatrix(val rows: Array[Int], val parent: StdMixedRowMatrix) 
 
   }
 
+  def getDenseSumSq: Array[Float] = {
+    val ss = new Array[Float](parent.nDenseCols)
+    (0 until rows.length).foreach{rowSubIdx =>
+      val rowIdx = rows(rowSubIdx)
+      val rowOffset = rowIdx * parent.nDenseCols
+      (0 until parent.nDenseCols).foreach{colIdx =>
+        try {
+          val p = parent.denseCols(rowOffset + colIdx)
+          val p2 = p * p
+          ss(colIdx) += p2
+        } catch {
+          case ex: Throwable =>
+            println("exception on (row, col) = " + (rowIdx, colIdx))
+            println("exception on (rowOffset) = " + rowOffset)
+            println("exception on (denseCols.size, nDenseCols) = " + (parent.denseCols.size, parent.nDenseCols))
+            throw ex
+        }
+      }
+    }
+    ss
+  }
+
   def getVector: MixedVector = {
     parent.getVector
   }

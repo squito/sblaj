@@ -122,6 +122,10 @@ class StdMixedRowMatrixTest extends FunSuite with Matchers {
     pending
   }
 
+  test("dense sum sq") {
+    pending
+  }
+
   test("sparseMatrix") {
     pending
   }

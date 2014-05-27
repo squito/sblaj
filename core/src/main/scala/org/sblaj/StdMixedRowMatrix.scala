@@ -120,6 +120,19 @@ class StdMixedRowMatrix(
     cs
   }
 
+  def getDenseSumSq: Array[Float] = {
+    val ss = new Array[Float](nDenseCols)
+    (0 until nRows).foreach{rowIdx =>
+      val rowOffset = rowIdx * nDenseCols
+      (0 until nDenseCols).foreach{colIdx =>
+        val p = denseCols(rowOffset + colIdx)
+        val p2 = p * p
+        ss(colIdx) += p2
+      }
+    }
+    ss
+  }
+
   def sizeString = s"$nRows x ($nDenseCols , $nSparseCols): $nnz.  maxRows = $maxRows, maxNnz = $maxNnz"
 }
 

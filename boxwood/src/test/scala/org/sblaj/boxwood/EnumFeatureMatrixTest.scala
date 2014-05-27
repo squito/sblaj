@@ -182,6 +182,10 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     pending
   }
 
+  test("dense sum sq") {
+    pending
+  }
+
 }
 
 
