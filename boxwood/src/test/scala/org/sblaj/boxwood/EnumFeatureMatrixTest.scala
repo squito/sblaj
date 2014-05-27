@@ -186,6 +186,10 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
     pending
   }
 
+  test("get column") {
+    pending
+  }
+
 }
 
 

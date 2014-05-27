@@ -86,6 +86,27 @@ class SubsetMixedRowMatrix(val rows: Array[Int], val parent: StdMixedRowMatrix) 
     ss
   }
 
+  def getColumn(colIdx: Int, into: Array[Float], pos: Int) {
+    if (colIdx > parent.nDenseCols) {
+      (0 until rows.length).foreach{rowSubIdx =>
+        val rowIdx = rows(rowSubIdx)
+        val rowOffset = rowIdx * parent.nDenseCols
+        into(rowSubIdx) = parent.denseCols(rowOffset + colIdx)
+      }
+    } else {
+      (0 until rows.length).foreach{rowSubIdx =>
+        val rowIdx = rows(rowSubIdx)
+        (parent.sparseRowStartIdx(rowIdx) until parent.sparseRowStartIdx(rowIdx + 1)).foreach{sparseIdx =>
+          val colId = parent.sparseColIds(sparseIdx)
+          if (colId == colIdx) {
+            into(rowSubIdx + pos) = parent.sparseColVals(sparseIdx)
+          }
+        }
+      }
+    }
+
+  }
+
   def getVector: MixedVector = {
     parent.getVector
   }

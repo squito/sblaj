@@ -126,6 +126,33 @@ class StdMixedRowMatrixTest extends FunSuite with Matchers {
     pending
   }
 
+  test("get column") {
+    val mat = genMatrix
+    val nDense = mat.nDenseCols
+
+    (0 until nDense).foreach{denseIdx =>
+      val col = mat.getColumn(denseIdx)
+      col.length should be (mat.nRows)
+      (0 until mat.nRows).foreach{rowIdx =>
+        col(rowIdx) should be ((rowIdx * nDense + denseIdx + 1) * 0.5f)
+      }
+    }
+
+    (0 until mat.nSparseCols).foreach{sparseIdx =>
+      val colIdx = sparseIdx + nDense
+      val col = mat.getColumn(colIdx)
+      col.length should be (mat.nRows)
+      (0 until mat.nRows).foreach{rowIdx =>
+        if (rowIdx >= sparseIdx)
+          col(rowIdx) should be (sparseIdx + 0.1f)
+        else
+          col(rowIdx) should be (0f)
+      }
+    }
+
+    pending //be sure to test both dense & sparse
+  }
+
   test("sparseMatrix") {
     pending
   }

@@ -133,6 +133,25 @@ class StdMixedRowMatrix(
     ss
   }
 
+  def getColumn(colIdx: Int, into: Array[Float], pos: Int) {
+    if (colIdx < nDenseCols) {
+      (0 until nRows).foreach { rowIdx =>
+        val rowOffset = rowIdx * nDenseCols
+        into(pos + rowIdx) = denseCols(rowOffset + colIdx)
+      }
+    } else {
+      (0 until nRows).foreach{rowIdx =>
+        //TODO try out a search in each vector, instead of brute force
+        (sparseRowStartIdx(rowIdx) until sparseRowStartIdx(rowIdx + 1)).foreach{sparseIdx =>
+          val colId = sparseColIds(sparseIdx)
+          if (colId == colIdx) {
+            into(pos + rowIdx) = sparseColVals(sparseIdx)
+          }
+        }
+      }
+    }
+  }
+
   def sizeString = s"$nRows x ($nDenseCols , $nSparseCols): $nnz.  maxRows = $maxRows, maxNnz = $maxNnz"
 }
 
