@@ -136,4 +136,25 @@ object ArrayUtils {
   }
 
 
+  def quantiles(data: Array[Float], quantiles: Array[Float], isSorted: Boolean = false): Array[Float] = {
+    val sData = if (!isSorted) {
+      val t = new Array[Float](data.length)
+      System.arraycopy(data, 0, t, 0, data.length)
+      java.util.Arrays.sort(t)
+      t
+    } else {
+      data
+    }
+
+    val qs = new Array[Float](quantiles.length)
+    (0 until quantiles.length).foreach{qIdx =>
+      val q = quantiles(qIdx)
+      //TODO interpolation
+      val idx = math.min((q * sData.length), sData.length -1).toInt
+      qs(qIdx) = sData(idx)
+    }
+    qs
+  }
+
+
 }

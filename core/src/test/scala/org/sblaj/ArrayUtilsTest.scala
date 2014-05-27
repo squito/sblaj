@@ -58,4 +58,10 @@ class ArrayUtilsTest extends FunSuite with Matchers {
     into(1) should be (1.4f +- eps)
     into(2) should be (0.7f +- eps)
   }
+
+  test("quantiles") {
+    val data = (0 to 1000).toArray.map{x => -2f * x}
+    val probs = Array(0f, 0.05f, 0.1f, 0.5f, 0.75f, 0.9f, 1f)
+    quantiles(data, probs) should be (Array(-2000f, -1900f, -1800f, -1000f, -500f, -200f, 0f))
+  }
 }
