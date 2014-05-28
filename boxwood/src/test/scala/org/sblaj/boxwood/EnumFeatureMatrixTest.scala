@@ -4,6 +4,7 @@ import org.scalatest.{Matchers, FunSuite}
 import com.quantifind.boxwood.{BaseFeatureSet, EnumUnionFeatureSet, EnumUnionCompanion, EnumUnion}
 import org.sblaj.StdMixedRowMatrix
 import scala.util.Random
+import org.sblaj.compare.MatrixCompare
 
 
 object enums {
@@ -176,6 +177,22 @@ class EnumFeatureMatrixTest extends FunSuite with Matchers {
         if (diff > 0.2) //really we should have a statistical test here, but you get the idea
           println(feature + "\t" + happyAvg(idx) + "\t" + unhappyAvg(idx))
     }
+  }
+
+  test("matrix compare") {
+    //so, this test should probably be in MatrixCompareTest, but I'm just using the dataset available here ...
+
+    val data: EnumFeaturesMatrix[U, F] = genData
+
+    val happyHamburger: EnumFeaturesMatrix[U,F] = data.eRowSubset{v =>
+      v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) >= 4
+    }
+    val unHappyHamburger: EnumFeaturesMatrix[U,F] = data.eRowSubset{v =>
+      v(EntreeOrder.Hamburger) >= 2 && v(CustomerSatisfaction.Taste) <= 2
+    }
+
+
+    println(MatrixCompare.compare(unHappyHamburger.matrix, happyHamburger.matrix))
   }
 
   test("get vector") {
