@@ -1,37 +1,60 @@
 package org.sblaj.io
 
-import org.sblaj.featurization.{DictionaryCache, SortEnumeration, FeatureEnumeration, HashMapDictionaryCache}
 import java.io.PrintWriter
-import io.Source
+
 import it.unimi.dsi.fastutil.longs._
+import org.sblaj.featurization.{DictionaryCache, FeatureEnumeration, HashMapDictionaryCache, SortEnumeration}
 import org.sblaj.util.Logging
+
+import scala.io.{BufferedSource, Source}
 
 object DictionaryIO extends Logging {
 
   def writeDictionary(dictionary: DictionaryCache[String], file: String) {
     val out = new PrintWriter(file)
-    dictionary.foreach{case(key, code) => out.println(key + "\t" + code)}
+    writeDictionary(dictionary, out)
     out.close()
+  }
+
+  def writeDictionary(dictionary: DictionaryCache[String], out: PrintWriter): Unit = {
+    dictionary.foreach{case(key, code) => out.println(key + "\t" + code)}
   }
 
   def writeEnumeration(enum: Array[Long], long2Name: Function[Long, Seq[String]], file: String) {
     val out = new PrintWriter(file)
+    writeEnumeration(enum, long2Name, out)
+    out.close()
+  }
+
+  def writeEnumeration(enum: Array[Long], long2Name: Function[Long, Seq[String]], out: PrintWriter) {
     enum.foreach{ longCode =>
       val names = long2Name(longCode)
       out.println(names.mkString("|OR|"))
     }
-    out.close()
   }
 
   def entryIterator(file:String):Iterator[(String,Long)] = {
-    Source.fromFile(file).getLines().map{ line=>
+    entryIterator(Source.fromFile(file))
+  }
+
+  def entryIterator(source:BufferedSource):Iterator[(String,Long)] = {
+    source.getLines().map{ line=>
       val p = line.lastIndexOf("\t")
       (line.substring(0,p), line.substring(p+1, line.length).toLong)
     }
   }
 
-  def readOneDictionary(file: String, mergeInto: HashMapDictionaryCache[String] = new HashMapDictionaryCache[String]): HashMapDictionaryCache[String] = {
-    entryIterator(file).zipWithIndex.foreach{ case((key,code),idx) =>
+  def readOneDictionary(file: String): HashMapDictionaryCache[String] = {
+    readOneDictionary(Source.fromFile(file), mergeInto = new HashMapDictionaryCache[String])
+  }
+
+  def readOneDictionary(file: String, mergeInto: HashMapDictionaryCache[String]): HashMapDictionaryCache[String] = {
+    readOneDictionary(Source.fromFile(file), mergeInto = mergeInto)
+  }
+
+
+  def readOneDictionary(source: BufferedSource, mergeInto: HashMapDictionaryCache[String] = new HashMapDictionaryCache[String]): HashMapDictionaryCache[String] = {
+    entryIterator(source).zipWithIndex.foreach{ case((key,code),idx) =>
       if (idx % 1e6.toInt == 0)
         info("reading line " + idx)
       mergeInto.addMapping(key,code)

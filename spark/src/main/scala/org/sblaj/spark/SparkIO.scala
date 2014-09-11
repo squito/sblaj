@@ -8,7 +8,7 @@ import org.apache.hadoop.io._
 import org.apache.hadoop.mapred._
 import org.sblaj.io.{RowMatrixPartitionDims, DictionaryIO}
 import java.io.{DataOutputStream, File, PrintWriter}
-import org.apache.hadoop.fs.FileSystem
+import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.util.Progressable
 import org.sblaj.featurization.GeneralCompleteDictionary
 
@@ -18,31 +18,39 @@ import org.sblaj.featurization.GeneralCompleteDictionary
  */
 object SparkIO {
 
-  def saveEnumeratedSparseCountVectorRDD(rdd: EnumeratedSparseCountVectorRDD[String], rddDir: String, localDir: String) {
-    val vectorPath = rddDir + "/vectors"
+  def saveEnumeratedSparseCountVectorRDD(rdd: EnumeratedSparseCountVectorRDD[String], dir: String) {
+    val vectorPath = dir+ "/vectors"
     saveSparseCountVectorRdd(rdd.vectorRDD, vectorPath)
 
-    new File(localDir).mkdirs()
+    val dictionaryPath = new Path(dir + "/dictionary")
+    val fs = dictionaryPath.getFileSystem(jc)
+    val dictionaryOut = new PrintWriter(fs.create(dictionaryPath))
+    DictionaryIO.writeDictionary(rdd.colDictionary, dictionaryOut)
+    dictionaryOut.close()
 
-    val dictionaryPath = localDir + "/dictionary"
-    DictionaryIO.writeDictionary(rdd.colDictionary, dictionaryPath)
-
-    val dimsPath = localDir + "/dims"
-    saveMatrixDims(rdd.dims, dimsPath)
+    val dimsPath = new Path(dir + "/dims")
+    val dimsOut = new PrintWriter(fs.create(dimsPath))
+    saveMatrixDims(rdd.dims, dimsOut)
+    dimsOut.close()
   }
 
-  def saveEnumeratedSparseBinaryVectorRDD(rdd: EnumeratedSparseBinaryVectorRDD[String], rddDir: String, localDir: String) {
-    val vectorPath = rddDir + "/vectors"
+  lazy val jc = new JobConf()
+
+  def saveEnumeratedSparseBinaryVectorRDD(rdd: EnumeratedSparseBinaryVectorRDD[String], dir: String) {
+    val vectorPath = dir + "/vectors"
     saveSparseBinaryVectorRdd(rdd.vectorRDD, vectorPath)
 
-    new File(localDir).mkdirs()
-
-    val dictionaryPath = localDir + "/dictionary"
+    val dictionaryPath = new Path(dir + "/dictionary")
+    val fs = dictionaryPath.getFileSystem(jc)
+    val dictionaryOut = new PrintWriter(fs.create(dictionaryPath))
     val d = rdd.colDictionary.asInstanceOf[GeneralCompleteDictionary[String]]
-    DictionaryIO.writeEnumeration(d.reverseEnum, d.elems.get _, dictionaryPath)
+    DictionaryIO.writeEnumeration(d.reverseEnum, d.elems.get _, dictionaryOut)
+    dictionaryOut.close()
 
-    val dimsPath = localDir + "/dims"
-    saveMatrixDims(rdd.dims, dimsPath)
+    val dimsPath = new Path(dir + "/dims")
+    val dimsOut = new PrintWriter(fs.create(dimsPath))
+    saveMatrixDims(rdd.dims, dimsOut)
+    dimsOut.close()
   }
 
   /**
@@ -89,7 +97,11 @@ object SparkIO {
 
   def saveMatrixDims(dims: RowMatrixPartitionDims, path: String) {
     val out = new PrintWriter(path)
+    saveMatrixDims(dims, out)
+    out.close()
+  }
 
+  def saveMatrixDims(dims: RowMatrixPartitionDims, out: PrintWriter) {
     out.println(dims.totalDims.nRows)
     out.println(dims.totalDims.nCols)
     out.println(dims.totalDims.nnz)
@@ -101,8 +113,6 @@ object SparkIO {
       out.println(nnz)
       out.println()
     }
-
-    out.close()
   }
 
 }
