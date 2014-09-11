@@ -1,7 +1,7 @@
 package org.sblaj.compare
 
 import org.sblaj.{SubsetMixedRowMatrix, StdMixedRowMatrix, MixedRowMatrix}
-import com.sblaj.util.BoundedPriorityQueue
+import org.sblaj.util.BoundedPriorityQueue
 
 /**
  * simple class for getting a quick comparison of two slices of data.
